@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/WSU-CPTS322-SP26/Visual-Network/static/css/main.cf5c30e0.css",
+    "main.js": "/WSU-CPTS322-SP26/Visual-Network/static/js/main.def77af3.js",
+    "index.html": "/WSU-CPTS322-SP26/Visual-Network/index.html",
+    "main.cf5c30e0.css.map": "/WSU-CPTS322-SP26/Visual-Network/static/css/main.cf5c30e0.css.map",
+    "main.def77af3.js.map": "/WSU-CPTS322-SP26/Visual-Network/static/js/main.def77af3.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.cf5c30e0.css",
+    "static/js/main.def77af3.js"
+  ]
+}
