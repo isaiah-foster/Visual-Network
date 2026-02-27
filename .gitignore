@@ -8,3 +8,4 @@ data/
 bin/
 jsonDumps/
 node_modules
+/bin
