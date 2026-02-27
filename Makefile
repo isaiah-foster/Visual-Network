@@ -20,11 +20,11 @@ install-deps:
 # Generate Go code from eBPF C code
 generate: install-deps
 	@echo "Generating eBPF Go bindings..."
-	cd pkg/ebpf && go generate
+	cd traffic-aggregation/ebpf && go generate
 
 # Build the collector binary
 build:
-	go build -o bin/collector ./cmd/collector
+	go build -o bin/collector ./traffic-aggregation/main.go
 
 # Run the collector (requires sudo and interface name)
 # Usage: make run IFACE=<network interface>
@@ -38,10 +38,10 @@ run:
 # Clean build artifacts
 clean:
 	rm -rf bin/
-	rm -f pkg/ebpf/tc_monitor_bpfel.go
-	rm -f pkg/ebpf/tc_monitor_bpfel.o
-	rm -f pkg/ebpf/tc_monitor_bpfeb.go
-	rm -f pkg/ebpf/tc_monitor_bpfeb.o
+	rm -f traffic-aggregation/ebpf/tc_monitor_bpfel.go
+	rm -f traffic-aggregation/ebpf/tc_monitor_bpfel.o
+	rm -f traffic-aggregation/ebpf/tc_monitor_bpfeb.go
+	rm -f traffic-aggregation/ebpf/tc_monitor_bpfeb.o
 
 # Development: watch for changes and rebuild
 watch:
