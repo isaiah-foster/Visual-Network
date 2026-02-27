@@ -13,6 +13,9 @@ import (
 )
 
 func main() {
+
+	fmt.Scanln()
+
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <interface>\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Example: %s eth0\n", os.Args[0])

@@ -87,30 +87,20 @@ struct {
     __type(value, struct tcp_handshake);
 } handshake_map SEC(".maps");
 
-// Helper function to detect L7 protocol
-static __always_inline __u8 detect_l7_protocol(__u16 port, __u8 *payload, __u32 payload_len) {
-    // Port-based detection
-    if (port == 80) return PROTO_HTTP;
-    if (port == 443) return PROTO_HTTPS;
-    if (port == 53) return PROTO_DNS;
-    if (port == 22) return PROTO_SSH;
-    
-    // Payload-based detection (basic)
-    if (payload_len >= 4) {
-        // HTTP methods
-        if (payload[0] == 'G' && payload[1] == 'E' && payload[2] == 'T' && payload[3] == ' ')
-            return PROTO_HTTP;
-        if (payload[0] == 'P' && payload[1] == 'O' && payload[2] == 'S' && payload[3] == 'T')
-            return PROTO_HTTP;
-        if (payload[0] == 'H' && payload[1] == 'T' && payload[2] == 'T' && payload[3] == 'P')
-            return PROTO_HTTP;
-    }
-    
-    return PROTO_UNKNOWN;
-}
+// Helper macro for detecting HTTP from payload pointer
+#define CHECK_HTTP_SIGNATURE(ptr, end) ({ \
+    __u8 ret = PROTO_UNKNOWN; \
+    if ((ptr + 4) <= end) { \
+        __u8 *p = ptr; \
+        if (p[0] == 'G' && p[1] == 'E' && p[2] == 'T' && p[3] == ' ') ret = PROTO_HTTP; \
+        else if (p[0] == 'P' && p[1] == 'O' && p[2] == 'S' && p[3] == 'T') ret = PROTO_HTTP; \
+        else if (p[0] == 'H' && p[1] == 'T' && p[2] == 'T' && p[3] == 'P') ret = PROTO_HTTP; \
+    } \
+    ret; \
+})
 
-// Main TC classifier program
-SEC("classifier")
+// Main TC program - for TCX attachment (modern TC API)
+SEC("tc")
 int tc_monitor(struct __sk_buff *skb) {
     void *data = (void *)(long)skb->data;
     void *data_end = (void *)(long)skb->data_end;
@@ -129,15 +119,23 @@ int tc_monitor(struct __sk_buff *skb) {
     
     // Get current timestamp
     __u64 now = bpf_ktime_get_ns();
-    
+
+    // Calculate actual packet size from available data
+    __u32 packet_size = (void *)data_end - data;
+    if (packet_size == 0)
+        return TC_ACT_OK;
+
     struct flow_key key = {};
     key.src_ip = ip->saddr;
     key.dst_ip = ip->daddr;
     key.protocol = ip->protocol;
-    
+
     __u8 l7_proto = PROTO_UNKNOWN;
-    __u32 packet_size = bpf_ntohs(ip->tot_len);
     void *l4_header = (void *)ip + (ip->ihl * 4);
+
+    // Validate l4_header is within bounds before proceeding
+    if (l4_header >= data_end)
+        return TC_ACT_OK;
     
     // Process TCP
     if (ip->protocol == IPPROTO_TCP) {
@@ -148,12 +146,15 @@ int tc_monitor(struct __sk_buff *skb) {
         key.src_port = bpf_ntohs(tcp->source);
         key.dst_port = bpf_ntohs(tcp->dest);
         
-        // Get payload for L7 detection
-        void *payload = (void *)tcp + (tcp->doff * 4);
-        __u32 payload_len = 0;
-        if (payload < data_end) {
-            payload_len = data_end - payload;
-            l7_proto = detect_l7_protocol(key.dst_port, payload, payload_len);
+        // Get payload for L7 detection - port-based only
+        if (key.dst_port == 80) {
+            l7_proto = PROTO_HTTP;
+        } else if (key.dst_port == 443) {
+            l7_proto = PROTO_HTTPS;
+        } else if (key.dst_port == 53) {
+            l7_proto = PROTO_DNS;
+        } else if (key.dst_port == 22) {
+            l7_proto = PROTO_SSH;
         }
         
         // Look up or create flow stats
@@ -250,12 +251,15 @@ int tc_monitor(struct __sk_buff *skb) {
         key.src_port = bpf_ntohs(udp->source);
         key.dst_port = bpf_ntohs(udp->dest);
         
-        // Get payload for L7 detection
-        void *payload = (void *)(udp + 1);
-        __u32 payload_len = 0;
-        if (payload < data_end) {
-            payload_len = data_end - payload;
-            l7_proto = detect_l7_protocol(key.dst_port, payload, payload_len);
+        // Get payload for L7 detection - port-based only
+        if (key.dst_port == 80) {
+            l7_proto = PROTO_HTTP;
+        } else if (key.dst_port == 443) {
+            l7_proto = PROTO_HTTPS;
+        } else if (key.dst_port == 53) {
+            l7_proto = PROTO_DNS;
+        } else if (key.dst_port == 22) {
+            l7_proto = PROTO_SSH;
         }
         
         struct flow_stats *stats = bpf_map_lookup_elem(&flow_map, &key);

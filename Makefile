@@ -1,7 +1,7 @@
 .PHONY: all clean generate build run install-deps setup
 
 # Default target
-all: install-deps generate build
+all: install-deps clean generate build
 
 # Complete setup (first time only)
 setup:
@@ -27,10 +27,10 @@ build:
 	go build -o bin/collector ./cmd/collector
 
 # Run the collector (requires sudo and interface name)
-# Usage: make run IFACE=eth0
+# Usage: make run IFACE=<network interface>
 run:
 	@if [ -z "$(IFACE)" ]; then \
-		echo "Error: IFACE not specified. Usage: make run IFACE=eth0"; \
+		echo "Error: IFACE not specified. Usage: make run IFACE=<your network interface>"; \
 		exit 1; \
 	fi
 	sudo ./bin/collector $(IFACE)
@@ -71,4 +71,4 @@ help:
 	@echo ""
 	@echo "Example usage:"
 	@echo "  make all"
-	@echo "  make run IFACE=eth0"
+	@echo "  make run IFACE=<your network interface>"

@@ -8,10 +8,11 @@ import (
 	"net"
 	"time"
 
+	"visual-network/pkg/types"
+
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/ringbuf"
-	"visual-network/pkg/types"
 )
 
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -cflags "-O2 -g -Wall -Werror -D__TARGET_ARCH_x86 -I/usr/include/x86_64-linux-gnu" tc_monitor ../../pkg/ebpf/tc_monitor.c
@@ -41,12 +42,12 @@ type bpfFlowStats struct {
 
 // Monitor manages the eBPF program and data collection
 type Monitor struct {
-	objs       *tc_monitorObjects
-	link       link.Link
-	ringbuf    *ringbuf.Reader
-	iface      string
-	eventChan  chan types.ConnEvent
-	stopChan   chan struct{}
+	objs      *tc_monitorObjects
+	link      link.Link
+	ringbuf   *ringbuf.Reader
+	iface     string
+	eventChan chan types.ConnEvent
+	stopChan  chan struct{}
 }
 
 // NewMonitor creates a new eBPF monitor
@@ -97,17 +98,22 @@ func NewMonitor(ifaceName string) (*Monitor, error) {
 
 // attachTCProgram attaches a TC program to an interface using netlink
 func attachTCProgram(ifaceIndex int, prog *ebpf.Program) (link.Link, error) {
-	// For TC programs, we need to use AttachNone and handle it differently
-	// TC programs don't have a specific attach type in the link API
+	// Attach to TC ingress hook using TCX (TC eXtended) API
 	opts := link.TCXOptions{
-		Interface:  ifaceIndex,
-		Program: prog,
-		Attach:  ebpf.AttachNone,
+		Interface: ifaceIndex,
+		Program:   prog,
+		Attach:    ebpf.AttachTCXIngress,
 	}
-	
+
+	l, err := link.AttachTCX(opts)
+	if err == nil {
+		return l, nil
+	}
+
+	// Fallback: Try attaching to egress if ingress fails
+	opts.Attach = ebpf.AttachTCXEgress
 	return link.AttachTCX(opts)
 }
-
 
 // readEvents reads from the ring buffer and sends to event channel
 func (m *Monitor) readEvents() {
@@ -158,7 +164,7 @@ func (m *Monitor) EventChannel() <-chan types.ConnEvent {
 // GetAllFlows reads all current flows from the flow map
 func (m *Monitor) GetAllFlows() (map[types.FlowKey]types.FlowStats, error) {
 	flows := make(map[types.FlowKey]types.FlowStats)
-	
+
 	var (
 		key   bpfFlowKey
 		value bpfFlowStats
@@ -212,7 +218,7 @@ func (m *Monitor) CleanExpiredFlows(timeout time.Duration) (int, error) {
 	now := time.Now()
 	timeoutNs := uint64(timeout.Nanoseconds())
 	nowNs := uint64(now.UnixNano())
-	
+
 	var (
 		key   bpfFlowKey
 		value bpfFlowStats
@@ -243,7 +249,7 @@ func (m *Monitor) CleanExpiredFlows(timeout time.Duration) (int, error) {
 // GetMapStats returns statistics about the eBPF maps
 func (m *Monitor) GetMapStats() (flowCount, handshakeCount int, err error) {
 	var key, value interface{}
-	
+
 	// Count flows
 	iter := m.objs.FlowMap.Iterate()
 	for iter.Next(&key, &value) {
@@ -268,7 +274,7 @@ func (m *Monitor) GetMapStats() (flowCount, handshakeCount int, err error) {
 // Close cleans up resources
 func (m *Monitor) Close() error {
 	close(m.stopChan)
-	
+
 	if m.ringbuf != nil {
 		if err := m.ringbuf.Close(); err != nil {
 			log.Printf("closing ring buffer: %v", err)
