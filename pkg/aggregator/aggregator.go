@@ -12,35 +12,49 @@ import (
 	"time"
 
 	"visual-network/pkg/ebpf"
+	"visual-network/pkg/storage"
 	"visual-network/pkg/types"
 )
 
 const (
-	FlowTimeout        = 10 * time.Second
+	FlowTimeout         = 10 * time.Second
 	AggregationInterval = 1 * time.Second
-	CleanupInterval    = 5 * time.Second
+	CleanupInterval     = 5 * time.Second
 )
 
 // Aggregator processes eBPF data and prepares topology updates
 type Aggregator struct {
-	monitor       *ebpf.Monitor
-	flows         map[types.FlowKey]*types.Flow
-	flowsMutex    sync.RWMutex
-	ipCache       map[string]*types.IPInfo
-	ipCacheMutex  sync.RWMutex
-	updateChan    chan types.TopologyUpdate
-	metricsChan   chan types.MetricsUpdate
-	stopChan      chan struct{}
-	ctx           context.Context
-	cancel        context.CancelFunc
+	monitor      *ebpf.Monitor
+	store        *storage.Store
+	flows        map[types.FlowKey]*types.Flow
+	flowsMutex   sync.RWMutex
+	ipCache      map[string]*types.IPInfo
+	ipCacheMutex sync.RWMutex
+	updateChan   chan types.TopologyUpdate
+	metricsChan  chan types.MetricsUpdate
+	stopChan     chan struct{}
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
-// NewAggregator creates a new aggregator
+// NewAggregator creates a new aggregator with default storage
 func NewAggregator(monitor *ebpf.Monitor) *Aggregator {
+	return NewAggregatorWithStorage(monitor, "./data", 100)
+}
+
+// NewAggregatorWithStorage creates a new aggregator with custom storage configuration
+func NewAggregatorWithStorage(monitor *ebpf.Monitor, dataDir string, maxFiles int) *Aggregator {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
+	// Create storage
+	store, err := storage.NewStore(dataDir, maxFiles)
+	if err != nil {
+		log.Printf("Warning: failed to initialize storage: %v", err)
+	}
+
 	a := &Aggregator{
 		monitor:     monitor,
+		store:       store,
 		flows:       make(map[types.FlowKey]*types.Flow),
 		ipCache:     make(map[string]*types.IPInfo),
 		updateChan:  make(chan types.TopologyUpdate, 10),
@@ -108,8 +122,8 @@ func (a *Aggregator) handleNewConnection(event types.ConnEvent) {
 	go a.resolveIP(dstIP)
 
 	a.flows[key] = flow
-	
-	log.Printf("New flow: %s:%d -> %s:%d (%s)", 
+
+	log.Printf("New flow: %s:%d -> %s:%d (%s)",
 		srcIP, event.SrcPort, dstIP, event.DstPort, flow.ProtocolName)
 }
 
@@ -138,7 +152,7 @@ func (a *Aggregator) aggregate() {
 	}
 
 	a.flowsMutex.Lock()
-	
+
 	var newFlows []types.Flow
 	var updatedFlows []types.Flow
 	var removedKeys []types.FlowKey
@@ -146,13 +160,13 @@ func (a *Aggregator) aggregate() {
 	// Update existing flows and find new ones
 	for key, stats := range ebpfFlows {
 		flow, exists := a.flows[key]
-		
+
 		if !exists {
 			// This shouldn't happen often (events should catch new flows)
 			// but handle it just in case
 			srcIP := ebpf.Uint32ToIP(key.SrcIP).String()
 			dstIP := ebpf.Uint32ToIP(key.DstIP).String()
-			
+
 			flow = &types.Flow{
 				Key:          key,
 				SrcIPStr:     srcIP,
@@ -163,7 +177,7 @@ func (a *Aggregator) aggregate() {
 				LastUpdate:   time.Now(),
 			}
 			a.flows[key] = flow
-			
+
 			go a.resolveIP(srcIP)
 			go a.resolveIP(dstIP)
 		}
@@ -171,7 +185,7 @@ func (a *Aggregator) aggregate() {
 		// Update flow stats
 		flow.Stats = stats
 		flow.LastUpdate = time.Now()
-		
+
 		// Calculate average latency
 		if stats.LatencyCount > 0 {
 			flow.AvgLatencyMs = float64(stats.LatencySum) / float64(stats.LatencyCount) / 1000.0
@@ -209,6 +223,13 @@ func (a *Aggregator) aggregate() {
 			Summary:   a.calculateSummary(),
 		}
 
+		// Save to storage
+		if a.store != nil {
+			if err := a.store.SaveTopologyUpdate(update); err != nil {
+				log.Printf("Error saving topology update: %v", err)
+			}
+		}
+
 		select {
 		case a.updateChan <- update:
 		default:
@@ -218,6 +239,14 @@ func (a *Aggregator) aggregate() {
 
 	// Send metrics update (top latency flows)
 	metrics := a.calculateMetrics()
+
+	// Save metrics to storage
+	if a.store != nil {
+		if err := a.store.SaveMetricsUpdate(metrics); err != nil {
+			log.Printf("Error saving metrics update: %v", err)
+		}
+	}
+
 	select {
 	case a.metricsChan <- metrics:
 	default:
@@ -261,7 +290,7 @@ func (a *Aggregator) calculateSummary() types.TopologySummary {
 	for _, flow := range a.flows {
 		summary.TotalPackets += flow.Stats.Packets
 		summary.TotalBytes += flow.Stats.Bytes
-		
+
 		uniqueIPs[flow.SrcIPStr] = true
 		uniqueIPs[flow.DstIPStr] = true
 
@@ -395,7 +424,7 @@ func (a *Aggregator) getResolvedName(ip string) string {
 func detectCompany(ip string) string {
 	// This is a simplified version. In production, you'd load comprehensive
 	// IP range databases from AWS, GCP, Azure, etc.
-	
+
 	parsedIP := net.ParseIP(ip)
 	if parsedIP == nil {
 		return ""
@@ -455,7 +484,7 @@ func (a *Aggregator) DumpTopology() {
 
 	fmt.Println("\n=== Current Topology ===")
 	fmt.Printf("Total flows: %d\n", len(a.flows))
-	
+
 	for _, flow := range a.flows {
 		fmt.Printf("%s:%d -> %s:%d [%s] packets=%d bytes=%d latency=%.2fms\n",
 			flow.SrcName, flow.Key.SrcPort,
@@ -474,6 +503,11 @@ func (a *Aggregator) DumpJSON() string {
 	topology := a.GetCurrentTopology()
 	data, _ := json.MarshalIndent(topology, "", "  ")
 	return string(data)
+}
+
+// GetStore returns the storage instance
+func (a *Aggregator) GetStore() *storage.Store {
+	return a.store
 }
 
 // Close stops the aggregator
