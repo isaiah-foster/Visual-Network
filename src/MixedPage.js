@@ -22,7 +22,7 @@ function MixedPage() {
       
         return (
           <div className="w-full max-w-6xl mx-auto mt-8 px-4">
-            <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center ">Incoming/Outcoming Network Overview</h1>
+            <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center ">Incoming/Outgoing Network Overview</h1>
   
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="h-96 rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
@@ -74,7 +74,7 @@ function MixedPage() {
               </div>
 
               <div className="h-96 md:col-span-2 md:max-w-2xl md:mx-auto w-full rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
-                <p className="text-center mb-2 font-semibold text-lg text-slate-800 ">Networking Portocol </p>
+                <p className="text-center mb-2 font-semibold text-lg text-slate-800 ">Networking Protocol </p>
                 <div className="flex-1">
                   <ResponsiveContainer>
                     <PieChart>

@@ -1,8 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 function InPage() {
-   const data = [
+   
+  // const [latency, setLatency] = useState([]);
+  // const [volumeIn, setVolumeIn] = useState([]);
+  // const [volumeOut, setVolumeOut] = useState([]);
+  // const [protocol, setProtocol] = useState([]);
+  // const [loading, setLoading] = useState(true)
+  // const [error, setError] = useState("")
+  
+  // useEffect(() => {
+
+  //   const load = async () => {
+  //     try{
+  //       setLoading(true)
+  //       setError("")
+
+  //       // const res = await fetch("backendAPI");
+  //       // if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  //       // const json = await res.json()
+
+  //       setVolumeIn(json.volumeIn);
+  //       setVolumeOut(json.volumeOut);
+  //       setProtocol(json.protocol);
+  //       setLatency(json.latency);
+
+  //     } catch (err){
+  //       setError(err.message || "Failed to load data")
+  //     } finally {
+  //       setLoading(false);
+  //     }
+
+  //     load();
+
+  //   }
+  // }, [])
+
+  const data = [
         { name: "Red", value: 700 },
         { name: "Blue", value: 300 },
         { name: "Orange", value: 300 },

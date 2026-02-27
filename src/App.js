@@ -33,7 +33,7 @@ function Home() {
     <div style={{ maxWidth: '2000px', lineHeight: '1.6' , fontSize: "1.3rem"}}>
       <h1 style={{ fontSize: '3rem', marginBottom: '12px' }}>Visual Network</h1>
       <p style={{ marginBottom: '14px' }}>
-        This project shows a visualization of traffic thats comming into and out of your computer. Some of the things were measuring include: 
+        This project shows a visualization of traffic thats coming into and out of your computer. Some of the things were measuring include: 
       </p>
       <p><strong>Volume In: </strong>  Measures the amount of packets recieved from each IP address which is expressed in packets per second (pps).</p>
       <p><strong>Volume Out: </strong>  Measures the amount of packets going out of the computer which is expressed in packets per second (pps).</p>

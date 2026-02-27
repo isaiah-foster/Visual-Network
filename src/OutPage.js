@@ -21,7 +21,7 @@ function OutPage() {
       
         return (
           <div className="w-full max-w-6xl mx-auto mt-8 px-4">
-            <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center ">Outcoming Network Overview</h1>
+            <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center ">Outgoing Network Overview</h1>
   
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="h-96 rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
