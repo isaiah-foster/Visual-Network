@@ -26,17 +26,17 @@ We implemented an SQL database to store user login information as well as an Ngi
 ## Unfinished Work
 If applicable, explain the work you did not finish in this sprint. For issues/user stories in the current sprint that have not been closed, (a) any progress toward completion of the issues has been clearly tracked (by checking the checkboxes of  acceptance criteria), (b) a comment has been added to the issue to explain why the issue could not be completed (e.g., "we ran out of time" or "we did not anticipate it would be so much work"), and (c) the issue is added to a subsequent sprint, so that it can be addressed later.
 
-Since this is the first sprint, there are many ideas and features that are still in the oven that'll be ready for the next sprint. We have stories that we made that might not be finished by the sprint deadline. Some of these include:
+Since this is the first sprint, there are many ideas and features that are still in the oven that'll be ready for the next sprint. We have Issues that we made that might not be finished by the sprint deadline. Some of these include:
 
--- Issue 1.) Improving Frontend UX and Visuals. (Didn't have enough time to sharpen up the visuals for this sprint deadline due to other bigger priorities)
--- Issue 2.) 
+Issue 1.) Improving Frontend UX and Visuals. (Didn't have enough time to sharpen up the visuals for this sprint deadline due to other bigger priorities)
+
 
 ## Completed Issues/User Stories
 Here are links to the issues that we completed in this sprint:
 
- * URL of issue 1
- * URL of issue 2
- * URL of issue n
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/9
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/1
+
 
  Reminders (Remove this section when you save the file):
   * Each issue should be assigned to a milestone
@@ -49,7 +49,7 @@ Here are links to the issues that we completed in this sprint:
  ## Incomplete Issues/User Stories
  Here are links to issues we worked on but did not complete in this sprint:
  
- * URL of issue 1 <<One sentence explanation of why issue was not completed>>
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/6 (Decided that this feature was not worth the time for this sprint as its only a visual enhancement and we had other priorities such as getting a connecting the frontend and backend)
  * URL of issue 2 <<One sentence explanation of why issue was not completed>>
  * URL of issue n <<One sentence explanation of why issue was not completed>>
  
@@ -61,18 +61,18 @@ Here are links to the issues that we completed in this sprint:
 
 ## Code Files for Review (top 5-6 files that are highlight / best files)
 Please review the following code files, which were actively developed during this sprint, for quality:
- * [Name of code file 1](https://github.com/your_repo/file_extension)
+ * InPage.js (https://github.com/WSU-CPTS322-SP26/Visual-Network/blob/lucas-branch/src/InPage.js)
  * [Name of code file 2](https://github.com/your_repo/file_extension)
  * [Name of code file 3](https://github.com/your_repo/file_extension)
  
 ## Retrospective Summary
 Here's what went well:
-  * Item 1
-  * Item 2
-  * Item x
+  * Team communitcation and steady progress throughout the duration of the sprint.
+  * Completed issues that needed to be done before sprint 1.
+  * We have plans for the future on what to improve for the next sprint.
  
 Here's what we'd like to improve:
-   * Item 1
+   * Visuals and UX on the frontend side of things.
    * Item 2
    * Item x
   
