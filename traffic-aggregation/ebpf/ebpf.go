@@ -8,14 +8,14 @@ import (
 	"net"
 	"time"
 
-	"visual-network/pkg/types"
+	"visual-network/traffic-aggregation/types"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/ringbuf"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -cflags "-O2 -g -Wall -Werror -D__TARGET_ARCH_x86 -I/usr/include/x86_64-linux-gnu" tc_monitor ../../pkg/ebpf/tc_monitor.c
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -cflags "-O2 -g -Wall -Werror -D__TARGET_ARCH_x86 -I/usr/include/x86_64-linux-gnu" tc_monitor ../../traffic-aggregation/ebpf/tc_monitor.c
 
 // bpfFlowKey matches the C struct flow_key
 type bpfFlowKey struct {

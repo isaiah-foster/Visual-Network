@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"visual-network/pkg/ebpf"
-	"visual-network/pkg/storage"
-	"visual-network/pkg/types"
+	"visual-network/traffic-aggregation/ebpf"
+	"visual-network/traffic-aggregation/storage"
+	"visual-network/traffic-aggregation/types"
 )
 
 const (
@@ -39,7 +39,7 @@ type Aggregator struct {
 
 // NewAggregator creates a new aggregator with default storage
 func NewAggregator(monitor *ebpf.Monitor) *Aggregator {
-	return NewAggregatorWithStorage(monitor, "./data", 100)
+	return NewAggregatorWithStorage(monitor, "./traffic-aggregation/storage/jsonDumps/", 100)
 }
 
 // NewAggregatorWithStorage creates a new aggregator with custom storage configuration

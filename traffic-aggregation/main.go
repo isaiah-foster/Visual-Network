@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"visual-network/pkg/aggregator"
-	"visual-network/pkg/ebpf"
+	"visual-network/traffic-aggregation/aggregator"
+	"visual-network/traffic-aggregation/ebpf"
 )
 
 func main() {

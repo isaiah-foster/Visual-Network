@@ -1,0 +1,124 @@
+{
+  "timestamp": "2026-02-27T12:41:14.214182842-08:00",
+  "updated": [
+    {
+      "Key": {
+        "SrcIP": 20435722,
+        "DstIP": 154653450,
+        "SrcPort": 53,
+        "DstPort": 60519,
+        "Protocol": 17
+      },
+      "Stats": {
+        "Packets": 1,
+        "Bytes": 84,
+        "LastSeen": 3055578780872,
+        "FirstSeen": 3055578780872,
+        "LatencySum": 0,
+        "LatencyCount": 0,
+        "State": 1,
+        "L7Protocol": 0
+      },
+      "SrcIPStr": "10.211.55.1",
+      "DstIPStr": "10.211.55.9",
+      "SrcName": "prl-local-ns-server.shared",
+      "DstName": "ubuntu-24.04.3-arm64.shared",
+      "ProtocolName": "UDP",
+      "L7ProtoName": "",
+      "AvgLatencyMs": 0,
+      "Active": true,
+      "LastUpdate": "2026-02-27T12:41:14.214173384-08:00"
+    },
+    {
+      "Key": {
+        "SrcIP": 20435722,
+        "DstIP": 154653450,
+        "SrcPort": 53,
+        "DstPort": 33348,
+        "Protocol": 17
+      },
+      "Stats": {
+        "Packets": 1,
+        "Bytes": 124,
+        "LastSeen": 3055566067039,
+        "FirstSeen": 3055566067039,
+        "LatencySum": 0,
+        "LatencyCount": 0,
+        "State": 1,
+        "L7Protocol": 0
+      },
+      "SrcIPStr": "10.211.55.1",
+      "DstIPStr": "10.211.55.9",
+      "SrcName": "prl-local-ns-server.shared",
+      "DstName": "ubuntu-24.04.3-arm64.shared",
+      "ProtocolName": "UDP",
+      "L7ProtoName": "",
+      "AvgLatencyMs": 0,
+      "Active": true,
+      "LastUpdate": "2026-02-27T12:41:14.214177801-08:00"
+    },
+    {
+      "Key": {
+        "SrcIP": 20435722,
+        "DstIP": 154653450,
+        "SrcPort": 53,
+        "DstPort": 44332,
+        "Protocol": 17
+      },
+      "Stats": {
+        "Packets": 1,
+        "Bytes": 125,
+        "LastSeen": 3055562922122,
+        "FirstSeen": 3055562922122,
+        "LatencySum": 0,
+        "LatencyCount": 0,
+        "State": 1,
+        "L7Protocol": 0
+      },
+      "SrcIPStr": "10.211.55.1",
+      "DstIPStr": "10.211.55.9",
+      "SrcName": "prl-local-ns-server.shared",
+      "DstName": "ubuntu-24.04.3-arm64.shared",
+      "ProtocolName": "UDP",
+      "L7ProtoName": "",
+      "AvgLatencyMs": 0,
+      "Active": true,
+      "LastUpdate": "2026-02-27T12:41:14.214180301-08:00"
+    },
+    {
+      "Key": {
+        "SrcIP": 37212938,
+        "DstIP": 154653450,
+        "SrcPort": 63641,
+        "DstPort": 22,
+        "Protocol": 6
+      },
+      "Stats": {
+        "Packets": 23,
+        "Bytes": 2826,
+        "LastSeen": 3056221328539,
+        "FirstSeen": 3055554590081,
+        "LatencySum": 0,
+        "LatencyCount": 0,
+        "State": 1,
+        "L7Protocol": 4
+      },
+      "SrcIPStr": "10.211.55.2",
+      "DstIPStr": "10.211.55.9",
+      "SrcName": "10.211.55.2",
+      "DstName": "ubuntu-24.04.3-arm64.shared",
+      "ProtocolName": "TCP",
+      "L7ProtoName": "SSH",
+      "AvgLatencyMs": 0,
+      "Active": true,
+      "LastUpdate": "2026-02-27T12:41:14.214181426-08:00"
+    }
+  ],
+  "summary": {
+    "total_flows": 4,
+    "total_packets": 26,
+    "total_bytes": 3159,
+    "unique_ips": 3,
+    "avg_latency_ms": 0
+  }
+}

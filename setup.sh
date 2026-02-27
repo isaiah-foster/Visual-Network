@@ -41,7 +41,11 @@ echo "Checking dependencies..."
 MISSING_PKGS=""
 
 if ! command -v clang &> /dev/null; then
-    MISSING_PKGS="$MISSING_PKGS clang"1
+    MISSING_PKGS="$MISSING_PKGS clang"
+fi
+
+if ! command -v golang-go &> /dev/null; then
+    MISSING_PKGS="$MISSING_PKGS golang-go"
 fi
 
 if ! command -v llvm-strip &> /dev/null; then

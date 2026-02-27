@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"visual-network/pkg/types"
+	"visual-network/traffic-aggregation/types"
 )
 
 // Store handles persistent JSON storage of network data
