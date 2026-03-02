@@ -72,4 +72,5 @@ Here's what we'd like to improve:
 Here are changes we plan to implement in the next sprint:
    * Integrate the database and user authentication with the project
    * Verify that no bugs exist after sprint 2
-   * Include print/log statements to improve bug-finding and readabilty 
+   * Include print/log statements to improve bug-finding and readabilty
+   * Finish touches on connecting backend and frontend
