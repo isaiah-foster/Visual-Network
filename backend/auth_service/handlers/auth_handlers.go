@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"userauth/auth_service/auth"
-	"userauth/auth_service/store"
+	"visual-network/auth_service/auth"
+	"visual-network/auth_service/store"
 )
 
 type AuthHandlers struct {

@@ -1,25 +1,18 @@
-# Project Name
-
-Visual Network
-
-## Project summary
-
-### One-sentence description of the project
-
-Visual Network is a React and linux kernal-based application that visualizes inbound, outbound, and mixed network traffic patterns using interactive charts.
-
-### Additional information about the project
-
-Visual Network is a networking focused on making network behavior easier to understand at a glance. The app provides three focused views (In, Out, and Mixed) and visualizes key metrics such as packet volume, protocol distribution, and latency with pie and bar charts. The current implementation uses mock data in the UI and is designed as a foundation for integrating live packet-capture or telemetry sources later.
-
-## Installation
+## Frontend Installation
 
 ### Prerequisites
 
-- Running linux kernel >=6.6
 - Git (latest stable)
 - Node.js 20.x or newer 
 - npm 10.x or newer
+
+Verify your environment:
+
+```bash
+node -v
+npm -v
+git --version
+```
 
 ### Add-ons
 
@@ -39,8 +32,8 @@ git clone https://github.com/WSU-CPTS322-SP26/Visual-Network.git
 cd Visual-Network
 make setup
 make build
+make run
 ```
-
 
 #### Data setup (real vs seed/mock)
 
@@ -53,8 +46,7 @@ make build
 
 ## Functionality
 
-1. Start the backend with `make run-backend IFACE=<your network inferface>`
-2. Start the frontend with `make run-frontend`
+1. Start the app with `npm start`.
 2. Open the app in your browser (default: `http://localhost:3000`).
 3. Use the top navigation:
 	 - **Home**: Overview of the project and displayed metrics.
@@ -67,6 +59,8 @@ make build
 
 - **Mock data only**: The app currently visualizes hardcoded sample values, not live networking values.
 	- Location: `src/InPage.js`, `src/OutPage.js`, `src/MixedPage.js`
+- **Hard-coded router basename**: Navigation uses a fixed basename (`/WSU-CPTS322-SP26/Visual-Network`) that may require adjustment for local/custom deployments.
+	- Location: `src/App.js`
 
 ## Contributing
 
@@ -78,10 +72,19 @@ make build
 
 ## Additional Documentation
 
-Documentation is in `docs/` including:
+Currently, no additional project docs are committed.
 
-- Sprint 1 report
-- Demo link
+Suggested docs to add under a future `docs/` directory:
+
+- Sprint reports
+- Architecture notes
+- User guide / demo links
 
 ## License
-MIT Lincense https://github.com/WSU-CPTS322-SP26/Visual-Network/blob/main/LICENSE.txt
+
+This repository should include a `LICENSE.txt` file.
+
+Recommended license: MIT
+
+- https://choosealicense.com/licenses/mit/
+

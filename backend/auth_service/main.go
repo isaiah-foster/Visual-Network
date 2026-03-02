@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"userauth/internal/handlers"
-	"userauth/internal/store"
+	"visual-network/auth_service/handlers"
+	"visual-network/auth_service/store"
 
 	_ "github.com/go-sql-driver/mysql"
 )
