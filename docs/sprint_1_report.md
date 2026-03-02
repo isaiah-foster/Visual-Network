@@ -36,6 +36,7 @@ Here are links to the issues that we completed in this sprint:
 
  * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/9
  * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/1
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/4
 
 
  Reminders (Remove this section when you save the file):
