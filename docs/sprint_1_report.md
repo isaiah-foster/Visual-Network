@@ -24,11 +24,11 @@ We implemented a frontend to support the following:
 We implemented an SQL database to store user login information as well as an Nginx service to handle http requests and establish websockets connections from frontend to backend. We had an extremely steep, but productive learning curve to overcome with understanding eBPF and how to implement it. We also had to learn how to build an auth system from scratch, which took a nontrivial amount of research.
 
 ## Unfinished Work
-If applicable, explain the work you did not finish in this sprint. For issues/user stories in the current sprint that have not been closed, (a) any progress toward completion of the issues has been clearly tracked (by checking the checkboxes of  acceptance criteria), (b) a comment has been added to the issue to explain why the issue could not be completed (e.g., "we ran out of time" or "we did not anticipate it would be so much work"), and (c) the issue is added to a subsequent sprint, so that it can be addressed later.
-
 Since this is the first sprint, there are many ideas and features that are still in the oven that'll be ready for the next sprint. We have Issues that we made that might not be finished by the sprint deadline. Some of these include:
 
 Issue 1.) Improving Frontend UX and Visuals. (Didn't have enough time to sharpen up the visuals for this sprint deadline due to other bigger priorities)
+
+Issue 2.) Streamline the project and fix 90% of bugs. (Were getting there but since this is a early prototype theres many bugs)
 
 
 ## Completed Issues/User Stories
@@ -50,20 +50,13 @@ Here are links to the issues that we completed in this sprint:
  Here are links to issues we worked on but did not complete in this sprint:
  
  * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/6 (Decided that this feature was not worth the time for this sprint as its only a visual enhancement and we had other priorities such as getting a connecting the frontend and backend)
- * URL of issue 2 <<One sentence explanation of why issue was not completed>>
- * URL of issue n <<One sentence explanation of why issue was not completed>>
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/5 (We did not have enough time to implement this feature given the short timespan of the sprint)
  
- Examples of explanations (Remove this section when you save the file):
-  * "We ran into a complication we did not anticipate (explain briefly)." 
-  * "We decided that the feature did not add sufficient value for us to work on it in this sprint (explain briefly)."
-  * "We could not reproduce the bug" (explain briefly).
-  * "We did not get to this issue because..." (explain briefly)
-
 ## Code Files for Review (top 5-6 files that are highlight / best files)
 Please review the following code files, which were actively developed during this sprint, for quality:
- * InPage.js (https://github.com/WSU-CPTS322-SP26/Visual-Network/blob/lucas-branch/src/InPage.js)
- * [Name of code file 2](https://github.com/your_repo/file_extension)
- * [Name of code file 3](https://github.com/your_repo/file_extension)
+ * (InPage.js) (https://github.com/WSU-CPTS322-SP26/Visual-Network/blob/lucas-branch/src/InPage.js)
+ * (tcm_monitor.c) (https://github.com/WSU-CPTS322-SP26/Visual-Network/blob/main/backend/traffic-aggregation/ebpf/tc_monitor.c)
+ * (mysql_store.go) (https://github.com/WSU-CPTS322-SP26/Visual-Network/blob/main/backend/auth_service/store/mysql_store.go)
  
 ## Retrospective Summary
 Here's what went well:
@@ -73,10 +66,9 @@ Here's what went well:
  
 Here's what we'd like to improve:
    * Visuals and UX on the frontend side of things.
-   * Item 2
-   * Item x
+   * Improve the speed it takes the frontend to update with new data
   
 Here are changes we plan to implement in the next sprint:
-   * Item 1
-   * Item 2
-   * Item x
+   * Integrate the database and user authentication with the project
+   * Verify that no bugs exist after sprint 2
+   * Include print/log statements to improve bug-finding and readabilty 
