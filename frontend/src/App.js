@@ -6,7 +6,7 @@ import MixedPage from './MixedPage';
 
 function App() {
   return (
-    <Router basename="/WSU-CPTS322-SP26/Visual-Network">
+    <Router basename={process.env.NODE_ENV === 'production' ? (process.env.PUBLIC_URL || '/') : '/'}>
       <div>
         <nav style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#969896' }}>
           <Link to="/" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Home</Link>
