@@ -29,6 +29,7 @@ setup: deps mysql-ubuntu
 
 .PHONY: deps
 deps:
+	sudo apt install golang
 	$(GO) mod download
 	$(GO) mod verify
 

@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"net/http"
 
-	"userauth/auth_service/store"
+	"visual-network/auth_service/store"
 )
 
 type ctxKey string
