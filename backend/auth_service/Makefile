@@ -15,6 +15,7 @@ help:
 	@echo "  make deps    - Download Go modules required by this project"
 	@echo "  make mysql-ubuntu - Install/configure MySQL on Ubuntu and print schema template"
 	@echo "  make mysql-schema-template - Print the SQL template for the user_auth table"
+	@echo "  make mysql-create-db - Create the database and user using db/db_init.sql"
 	@echo "  make fmt     - Format Go code"
 	@echo "  make vet     - Run go vet"
 	@echo "  make test    - Run unit tests"
@@ -59,6 +60,10 @@ mysql-ubuntu:
 	echo "  FLUSH PRIVILEGES;"; \
 	echo ""; \
 	$(MAKE) mysql-schema-template
+
+.PHONY: mysql-create-db
+mysql-create-db:
+	sudo mysql < db/db_init.sql
 
 .PHONY: mysql-schema-template
 mysql-schema-template:
