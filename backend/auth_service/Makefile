@@ -68,6 +68,10 @@ mysql-create-user:
     			GRANT ALL PRIVILEGES ON $(DB_NAME).* TO '$(DB_USER)'@'localhost'; \
     			FLUSH PRIVILEGES;"
 
+.PHONY: seed-admin
+seed-admin:
+	$(GO) run ./cmd/seed
+
 
 .PHONY: mysql-schema-template
 mysql-schema-template:
