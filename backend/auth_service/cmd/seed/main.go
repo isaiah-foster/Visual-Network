@@ -1,4 +1,4 @@
-package seed
+package main
 
 import (
 	"visual-network/auth_service/auth"
