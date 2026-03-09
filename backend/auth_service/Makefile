@@ -51,19 +51,23 @@ mysql-ubuntu:
 	echo "Launching mysql_secure_installation."; \
 	echo "Follow the prompts to set your local security options."; \
 	sudo mysql_secure_installation; \
-	echo ""; \
-	echo "Open a MySQL shell after this target completes with: sudo mysql"; \
-	echo "Use the statements below to create your application database and user:"; \
-	echo "  CREATE DATABASE your_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; \
-	echo "  CREATE USER 'your_user'@'localhost' IDENTIFIED BY 'your_password';"; \
-	echo "  GRANT ALL PRIVILEGES ON your_database.* TO 'your_user'@'localhost';"; \
-	echo "  FLUSH PRIVILEGES;"; \
-	echo ""; \
+	echo ""; \a
 	$(MAKE) mysql-schema-template
 
 .PHONY: mysql-create-db
 mysql-create-db:
 	sudo mysql < db/db_init.sql
+	
+
+.PHONY: mysql-create-user
+mysql-create-user:
+	@[ -n "$(DB_USER)" ] || (echo "DB_USER is required"; exit 1)
+	@[ -n "$(DB_PASS)" ] || (echo "DB_PASS is required"; exit 1)
+	@[ -n "$(DB_NAME)" ] || (echo "DB_NAME is required"; exit 1)
+	sudo mysql -e "CREATE USER IF NOT EXISTS '$(DB_USER)'@'localhost' IDENTIFIED BY '$(DB_PASS)'; \
+    			GRANT ALL PRIVILEGES ON $(DB_NAME).* TO '$(DB_USER)'@'localhost'; \
+    			FLUSH PRIVILEGES;"
+
 
 .PHONY: mysql-schema-template
 mysql-schema-template:
