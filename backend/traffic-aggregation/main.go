@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,9 +15,6 @@ import (
 )
 
 func main() {
-
-	fmt.Scanln()
-
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <interface>\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Example: %s eth0\n", os.Args[0])
@@ -37,6 +36,39 @@ func main() {
 	// Create aggregator
 	agg := aggregator.NewAggregator(monitor)
 	defer agg.Close()
+
+	apiAddr := os.Getenv("BACKEND_API_ADDR")
+	if apiAddr == "" {
+		apiAddr = ":9090"
+	}
+
+	apiMux := http.NewServeMux()
+	apiMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+	apiMux.HandleFunc("/topology", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(agg.GetCurrentTopology())
+	})
+	apiMux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(agg.GetCurrentMetrics())
+	})
+
+	apiServer := &http.Server{
+		Addr:         apiAddr,
+		Handler:      apiMux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		log.Printf("Backend API listening on %s", apiAddr)
+		if err := apiServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Backend API server failed: %v", err)
+		}
+	}()
 
 	// Setup signal handling
 	sigChan := make(chan os.Signal, 1)
@@ -108,6 +140,9 @@ func main() {
 	<-sigChan
 	log.Println("\nShutting down...")
 	ticker.Stop()
+	if err := apiServer.Close(); err != nil {
+		log.Printf("Backend API close error: %v", err)
+	}
 
 	log.Println("Done!")
 }
