@@ -189,6 +189,15 @@ func (a *Aggregator) aggregate() {
 		// Calculate average latency
 		if stats.LatencyCount > 0 {
 			flow.AvgLatencyMs = float64(stats.LatencySum) / float64(stats.LatencyCount) / 1000.0
+		} else if stats.LastSeen > stats.FirstSeen {
+			deltaNs := stats.LastSeen - stats.FirstSeen
+			if stats.Packets > 1 {
+				flow.AvgLatencyMs = float64(deltaNs) / float64(stats.Packets-1) / 1_000_000.0
+			} else {
+				flow.AvgLatencyMs = float64(deltaNs) / 1_000_000.0
+			}
+		} else {
+			flow.AvgLatencyMs = 0
 		}
 
 		// Get resolved names
@@ -278,7 +287,11 @@ func (a *Aggregator) cleanupLoop() {
 func (a *Aggregator) calculateSummary() types.TopologySummary {
 	a.flowsMutex.RLock()
 	defer a.flowsMutex.RUnlock()
+	return a.calculateSummaryLocked()
+}
 
+
+func (a *Aggregator) calculateSummaryLocked() types.TopologySummary {
 	summary := types.TopologySummary{
 		TotalFlows: len(a.flows),
 	}
@@ -312,7 +325,11 @@ func (a *Aggregator) calculateSummary() types.TopologySummary {
 func (a *Aggregator) calculateMetrics() types.MetricsUpdate {
 	a.flowsMutex.RLock()
 	defer a.flowsMutex.RUnlock()
+	return a.calculateMetricsLocked()
+}
 
+
+func (a *Aggregator) calculateMetricsLocked() types.MetricsUpdate {
 	// Collect all flows with latency data
 	var latencyFlows []types.LatencyInfo
 	for _, flow := range a.flows {
@@ -473,8 +490,16 @@ func (a *Aggregator) GetCurrentTopology() types.TopologyUpdate {
 	return types.TopologyUpdate{
 		Timestamp: time.Now(),
 		NewFlows:  flows,
-		Summary:   a.calculateSummary(),
+		Summary:   a.calculateSummaryLocked(),
 	}
+}
+
+// GetCurrentMetrics returns the current top-latency metrics snapshot
+func (a *Aggregator) GetCurrentMetrics() types.MetricsUpdate {
+	a.flowsMutex.RLock()
+	defer a.flowsMutex.RUnlock()
+
+	return a.calculateMetricsLocked()
 }
 
 // DumpTopology prints current topology (for debugging)

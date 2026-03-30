@@ -1,63 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useNetworkData } from './useNetworkData';
 
 function InPage() {
-   
-  // const [latency, setLatency] = useState([]);
-  // const [volumeIn, setVolumeIn] = useState([]);
-  // const [volumeOut, setVolumeOut] = useState([]);
-  // const [protocol, setProtocol] = useState([]);
-  // const [loading, setLoading] = useState(true)
-  // const [error, setError] = useState("")
-  
-  // useEffect(() => {
+  const { flows, latencyDst, loading, error } = useNetworkData();
 
-  //   const load = async () => {
-  //     try{
-  //       setLoading(true)
-  //       setError("")
+  const volumeInData = useMemo(() => {
+    const grouped = new Map();
+    flows.forEach((flow) => {
+      const key = flow?.dstName || 'Unknown';
+      const current = grouped.get(key) || 0;
+      grouped.set(key, current + (flow?.bytes || 0));
+    });
 
-  //       // const res = await fetch("backendAPI");
-  //       // if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  //       // const json = await res.json()
+    return Array.from(grouped.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [flows]);
 
-  //       setVolumeIn(json.volumeIn);
-  //       setVolumeOut(json.volumeOut);
-  //       setProtocol(json.protocol);
-  //       setLatency(json.latency);
+  const protocolData = useMemo(() => {
+    const grouped = new Map();
+    flows.forEach((flow) => {
+      const key = flow?.l7ProtoName || flow?.protocolName || 'UNKNOWN';
+      const current = grouped.get(key) || 0;
+      grouped.set(key, current + (flow?.bytes || 0));
+    });
 
-  //     } catch (err){
-  //       setError(err.message || "Failed to load data")
-  //     } finally {
-  //       setLoading(false);
-  //     }
+    return Array.from(grouped.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [flows]);
 
-  //     load();
+  const latencyData = useMemo(() => {
+    return latencyDst.map((item) => ({
+      name: item?.name || 'Unknown',
+      value: Number(item?.avgLatencyMs || 0)
+    }));
+  }, [latencyDst]);
 
-  //   }
-  // }, [])
-
-  const data = [
-        { name: "Red", value: 700 },
-        { name: "Blue", value: 300 },
-        { name: "Orange", value: 300 },
-        { name: "Green", value: 200 },
-        { name: "Yellow", value: 200 }
-        ];
-    
-        const barData = [
-        { name: "Example 1", value: 100 },
-        { name: "Example 2", value: 300 },
-        { name: "Example 3", value: 300 },
-        { name: "Example 4", value: 200 },
-        { name: "Example 5", value: 200 }
-        ]
+  const formatMs = (value) => `${Number(value).toFixed(1)} ms`;
     
       const COLORS = ["#FF6384", "#36A2EB", "#fe9c00", "#4BC0C0", "#ffe100"];
+
+      const pieVolumeData = volumeInData.length > 0 ? volumeInData : [{ name: 'No data', value: 1 }];
+      const pieProtocolData = protocolData.length > 0 ? protocolData : [{ name: 'No data', value: 1 }];
+      const barLatencyData = latencyData.length > 0 ? latencyData : [{ name: 'No data', value: 0 }];
     
       return (
         <div className="w-full max-w-6xl mx-auto mt-8 px-4">
           <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center ">Incoming Network Overview</h1>
+          {(loading || error) && (
+            <p className="text-center text-slate-700 mb-4">
+              {error ? `Backend connection error: ${error}` : 'Loading backend network data...'}
+            </p>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="h-96 rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
@@ -65,8 +63,8 @@ function InPage() {
               <div className="flex-1">
                 <ResponsiveContainer>
                   <PieChart>
-                    <Pie data={data} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
-                      {data.map((entry, index) => (
+                    <Pie data={pieVolumeData} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
+                      {pieVolumeData.map((entry, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -81,8 +79,8 @@ function InPage() {
               <div className="flex-1">
                 <ResponsiveContainer>
                   <PieChart>
-                    <Pie data={data} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
-                      {data.map((entry, index) => (
+                    <Pie data={pieProtocolData} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
+                      {pieProtocolData.map((entry, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -96,11 +94,11 @@ function InPage() {
               <p className="text-center mb-2 font-semibold text-lg text-slate-800">Latency</p>
               <div className="flex-1">
                 <ResponsiveContainer>
-                  <BarChart data={barData} layout="vertical">
+                  <BarChart data={barLatencyData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
+                    <XAxis type="number" tickFormatter={formatMs} />
                     <YAxis type="category" dataKey="name" width={90} />
-                    <Tooltip />
+                    <Tooltip formatter={(value) => formatMs(value)} />
                     <Bar dataKey="value" fill="#36A2EB" />
                   </BarChart>
                 </ResponsiveContainer>
