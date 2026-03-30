@@ -12,6 +12,7 @@ help:
 	@echo "  make clean  - Remove node_modules and build output"
 
 setup:
+	$ sudo apt install nodejs npm
 	$(NPM) install
 
 run:
