@@ -74,12 +74,12 @@ func decodeArgon2idHash(encoded string) (Argon2idParams, []byte, []byte, error) 
 		return Argon2idParams{}, nil, nil, errors.New("invalid argon2id hash format")
 	}
 
-	if parts[2] != "v19" {
+	if parts[2] != "v=19" {
 		return Argon2idParams{}, nil, nil, errors.New("incompatible argon2 version")
 	}
 
 	var params Argon2idParams
-	_, err := fmt.Sscanf(parts[3], "m=%d, t=%d,p=%d", &params.Memory, &params.Iterations, &params.Parallelism)
+	_, err := fmt.Sscanf(parts[3], "m=%d, t=%d, p=%d", &params.Memory, &params.Iterations, &params.Parallelism)
 	if err != nil {
 		return Argon2idParams{}, nil, nil, errors.New("invalid argon2 parameters")
 	}

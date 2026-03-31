@@ -30,6 +30,7 @@ func (s *Store) GetUserForLogin(ctx context.Context, userID string) (*User, erro
 	err := s.DB.QueryRowContext(ctx, query, userID).Scan(
 		&user.UserID,
 		&user.Email,
+		&user.PassHash,
 		&user.Role,
 		&isActiveInt,
 	)

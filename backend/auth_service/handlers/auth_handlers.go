@@ -23,6 +23,13 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+type createUserRequest struct {
+	UserID   string `json:"user_id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
 func (h *AuthHandlers) Login(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
 		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
@@ -123,4 +130,45 @@ func (h *AuthHandlers) Logout(writer http.ResponseWriter, request *http.Request)
 	})
 
 	writer.WriteHeader(http.StatusNoContent)
+}
+
+func (h *AuthHandlers) CreateUser(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	role, ok := RoleFromContext(request.Context())
+	if !ok || role != "admin" {
+		http.Error(writer, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	var req createUserRequest
+	if err := json.NewDecoder(request.Body).Decode(&req); err != nil {
+		http.Error(writer, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	if req.UserID == "" || req.Email == "" || req.Password == "" || req.Role == "" {
+		http.Error(writer, "user_id, email, password, and role are required", http.StatusBadRequest)
+		return
+	}
+
+	passHash, err := auth.HashPasswordArgon2id(req.Password, auth.DefaultArgon2idParameters)
+	if err != nil {
+		http.Error(writer, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.Store.CreateUser(request.Context(), req.UserID, req.Email, passHash, req.Role); err != nil {
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			http.Error(writer, "duplicate user_id", http.StatusConflict)
+			return
+		}
+		http.Error(writer, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	writer.WriteHeader(http.StatusCreated)
 }
