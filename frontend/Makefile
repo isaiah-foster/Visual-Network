@@ -1,4 +1,4 @@
-APP_DIR := Visual-Network
+APP_DIR := Visual-Network/frontend
 NPM := npm
 
 .PHONY: help setup run build test clean
@@ -12,16 +12,17 @@ help:
 	@echo "  make clean  - Remove node_modules and build output"
 
 setup:
-	cd $(APP_DIR) && $(NPM) install
+	$ sudo apt install nodejs npm
+	$(NPM) install
 
 run:
-	cd $(APP_DIR) && $(NPM) start
+	$(NPM) start
 
 build:
-	cd $(APP_DIR) && $(NPM) run build
+	$(NPM) run build
 
 test:
-	cd $(APP_DIR) && $(NPM) test
+	$(NPM) test
 
 clean:
-	rm -rf $(APP_DIR)/node_modules $(APP_DIR)/build
+	rm -rf node_modules/ build/
