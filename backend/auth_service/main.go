@@ -18,7 +18,7 @@ import (
 
 func main() {
 	dsn := getEnv("MYSQL_DSN", "")
-	addr := getEnv("SERVER_ADDR", ":8080")
+	addr := getEnv("SERVER_ADDR", ":8081")
 	cookieSecure := getEnv("COOKIE_SECURE", "false") == "true"
 
 	if dsn == "" {

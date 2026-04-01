@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"visual-network/auth_service/auth"
 	"visual-network/auth_service/store"
 )
