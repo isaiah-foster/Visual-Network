@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"visual-network/auth_service/auth"
 	"visual-network/auth_service/store"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 type AuthHandlers struct {
@@ -29,6 +30,11 @@ type createUserRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
+}
+
+type meResponse struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
 }
 
 func (h *AuthHandlers) Login(writer http.ResponseWriter, request *http.Request) {
@@ -172,4 +178,30 @@ func (h *AuthHandlers) CreateUser(writer http.ResponseWriter, request *http.Requ
 	}
 
 	writer.WriteHeader(http.StatusCreated)
+}
+
+func (h *AuthHandlers) Me(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := UserIDFromContext(request.Context())
+	if !ok {
+		http.Error(writer, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	role, ok := RoleFromContext(request.Context())
+	if !ok {
+		http.Error(writer, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	resp := meResponse{
+		UserID: userID,
+		Role:   role,
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(writer).Encode(resp)
 }

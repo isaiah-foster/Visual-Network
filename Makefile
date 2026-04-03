@@ -106,6 +106,11 @@ clean:
 	cd rev-proxy && $(MAKE) clean
 	@echo "✓ Clean complete!"
 
+
+run-auth_service:
+	@echo "Starting auth service..."
+	cd backend/auth_service && $(MAKE) run
+
 # Run reverse proxy only
 run-proxy:
 	@echo "Starting reverse proxy (HTTP on :8080, HTTPS on :8443)..."
@@ -151,7 +156,7 @@ run-full:
 	@echo ""
 	@echo "┌─ Terminal 3: Auth Service ─────────────────────────────────────────────────────┐"
 	@echo "│                                                                                │"
-	@echo "│  $$ cd backend && source auth_service/.env && go run ./auth_service            │"
+	@echo "│  $$ make run-auth_service                                                      │"
 	@echo "│                                                                                │"
 	@echo "│  Requires MYSQL_DSN env var set                                                │"
 	@echo "└────────────────────────────────────────────────────────────────────────────────┘"
