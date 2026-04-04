@@ -137,6 +137,7 @@ run-full:
 	@echo "╚════════════════════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "To run the complete Visual Network stack, open FOUR separate terminals:"
+	@echo "NOTE: It is important to start the auth service before the frontend for proper connection to the database server."
 	@echo ""
 	@echo "┌─ Terminal 1: Frontend Dev Server ──────────────────────────────────────────────┐"
 	@echo "│                                                                                │"

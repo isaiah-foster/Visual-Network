@@ -1,42 +1,28 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import LoginPage from './LoginPage'; 
 import InPage from './InPage';
 import OutPage from './OutPage';
 import MixedPage from './MixedPage';
 import AdminCreateUserPage from './AdminCreateUserPage';
 import { ProtectedRoute } from './ProtectedRoute';
-import { AuthProvider } from './AuthContext';
+import NavBar from './NavBar';
 
 function App() {
-
-  
   return (
     <Router basename={process.env.NODE_ENV === 'production' ? (process.env.PUBLIC_URL || '/') : '/'}>
       <div>
-        <nav style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#969896' }}>
-          <div>
-            <Link to="/" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Home</Link>
-            <Link to="/in" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>In Page</Link>
-            <Link to="/out" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Out Page</Link>
-            <Link to="/mixed" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Mixed Page</Link>
-            <Link to="/admin/users" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Add User</Link>
+        <NavBar />
+          <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 74px)', padding: '40px' }}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/in" element={<ProtectedRoute><InPage /></ProtectedRoute>} />
+              <Route path="/out" element={<ProtectedRoute><OutPage /></ProtectedRoute>} />
+              <Route path="/mixed" element={<ProtectedRoute><MixedPage /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminCreateUserPage /></ProtectedRoute>} />
+            </Routes>
           </div>
-          {user && (
-            <button onClick={handleLogout}>Logout</button>
-          )}
-        </nav>
-
-        <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 74px)', padding: '40px' }}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/in" element={<ProtectedRoute><InPage /></ProtectedRoute>} />
-            <Route path="/out" element={<ProtectedRoute><OutPage /></ProtectedRoute>} />
-            <Route path="/mixed" element={<ProtectedRoute><MixedPage /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminCreateUserPage /></ProtectedRoute>} />
-          </Routes>
-        </div>
       </div>
     </Router>
   );
