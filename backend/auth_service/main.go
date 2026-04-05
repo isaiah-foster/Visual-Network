@@ -59,6 +59,9 @@ func main() {
 	mux.Handle("/auth/logout",
 		handlers.WithAuth(st, http.HandlerFunc(authHandlers.Logout)))
 
+	mux.Handle("/auth/admin/users",
+		handlers.WithAuth(st, http.HandlerFunc(authHandlers.CreateUser)))
+
 	mux.Handle("/auth/me",
 		handlers.WithAuth(st, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			userID, _ := handlers.UserIDFromContext(request.Context())
