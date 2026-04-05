@@ -1,8 +1,6 @@
-# Sprint 1 Report (2/7/26 - 2/24/2026)
+# Sprint  Report (2/25/26 - 4/4/2026)
 
 ## What's New (User Facing)
-
-
 
 ### Admin Features
 * Feature 1: Easy setup with setup.sh
@@ -10,8 +8,10 @@
 
 ### General User Features
  * Feature 1: Login page
- * Feature 2: Ability to login with admin provided credentials
- * Feature 3: Network metric viewing page
+ * Feature 1: The frontend now displays live network data from the host machine.
+ * Feature 2: The user may now view pie charts to visualize different network protocol usage over ingress and egress traffic.
+ * Feature 3: The user may now view pie charts to visualize the packet volume of top n ip addresses.
+ * Feature 3: The user may now view bar graphs to show network latency to top n most used ip addresses.
 
 
 ## Work Summary (Developer Facing)
