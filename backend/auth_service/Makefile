@@ -4,6 +4,7 @@ BIN_DIR ?= bin
 MAIN_PKG ?= .
 MYSQL_PKG ?= mysql-server
 MYSQL_SERVICE ?= mysql
+SHELL := /bin/bash
 
 BIN_PATH := $(BIN_DIR)/$(APP_NAME)
 
@@ -125,7 +126,8 @@ build:
 
 .PHONY: run
 run:
-	$(GO) run $(MAIN_PKG)
+	@echo "Starting auth service..."
+	source .env && $(GO) run main.go
 
 .PHONY: clean
 clean:

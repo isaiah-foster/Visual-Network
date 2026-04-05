@@ -106,6 +106,11 @@ clean:
 	cd rev-proxy && $(MAKE) clean
 	@echo "✓ Clean complete!"
 
+
+run-auth_service:
+	@echo "Starting auth service..."
+	cd backend/auth_service && $(MAKE) run
+
 # Run reverse proxy only
 run-proxy:
 	@echo "Starting reverse proxy (HTTP on :8080, HTTPS on :8443)..."
@@ -132,6 +137,7 @@ run-full:
 	@echo "╚════════════════════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "To run the complete Visual Network stack, open FOUR separate terminals:"
+	@echo "NOTE: It is important to start the auth service before the frontend for proper connection to the database server."
 	@echo ""
 	@echo "┌─ Terminal 1: Frontend Dev Server ──────────────────────────────────────────────┐"
 	@echo "│                                                                                │"
@@ -151,9 +157,9 @@ run-full:
 	@echo ""
 	@echo "┌─ Terminal 3: Auth Service ─────────────────────────────────────────────────────┐"
 	@echo "│                                                                                │"
-	@echo "│  $$ cd backend && go run ./auth_service                                        │"
+	@echo "│  $$ make run-auth_service                                                      │"
 	@echo "│                                                                                │"
-	@echo "│  Requires MYSQL_DSN env var set                                               │"
+	@echo "│  Requires MYSQL_DSN env var set                                                │"
 	@echo "└────────────────────────────────────────────────────────────────────────────────┘"
 	@echo ""
 	@echo "┌─ Terminal 4: Reverse Proxy ────────────────────────────────────────────────────┐"

@@ -18,7 +18,7 @@ import (
 
 func main() {
 	dsn := getEnv("MYSQL_DSN", "")
-	addr := getEnv("SERVER_ADDR", ":8080")
+	addr := getEnv("SERVER_ADDR", ":8081")
 	cookieSecure := getEnv("COOKIE_SECURE", "false") == "true"
 
 	if dsn == "" {
@@ -63,14 +63,11 @@ func main() {
 		handlers.WithAuth(st, http.HandlerFunc(authHandlers.CreateUser)))
 
 	mux.Handle("/auth/me",
-		handlers.WithAuth(st, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			userID, _ := handlers.UserIDFromContext(request.Context())
-			writer.Write([]byte("Authenticated as: " + userID))
-		})))
+		handlers.WithAuth(st, http.HandlerFunc(authHandlers.Me)))
 
 	server := &http.Server{
 		Addr:         addr,
-		Handler:      loggingMiddleware(mux),
+		Handler:      corsMiddleware(loggingMiddleware(mux)),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -111,5 +108,21 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(writer, request)
 		log.Printf("%s %s %s", request.Method, request.URL.Path, time.Since(start))
+	})
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Replace with frontend origin
+		writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if request.Method == http.MethodOptions {
+			writer.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(writer, request)
 	})
 }
