@@ -3,19 +3,19 @@
 ## What's New (User Facing)
 
 ### Admin Features
-* Feature 1: Easy setup with setup.sh
-* Feature 2: Create login credentials for users
+* Feature 1: Secure the platform with login setup
+* Feature 2: Easy setup with setup.sh
+* Feature 3: Create login credentials for users
 
 ### General User Features
  * Feature 1: Login page
- * Feature 1: The frontend now displays live network data from the host machine.
- * Feature 2: The user may now view pie charts to visualize different network protocol usage over ingress and egress traffic.
- * Feature 3: The user may now view pie charts to visualize the packet volume of top n ip addresses.
- * Feature 3: The user may now view bar graphs to show network latency to top n most used ip addresses.
-
+ * Feature 2: The frontend now displays live network data from the host machine.
+ * Feature 3: The user may now view pie charts to visualize different network protocol usage over ingress and egress traffic.
+ * Feature 4: The user may now view pie charts to visualize the packet volume of top n ip addresses.
+ * Feature 5: The user may now view bar graphs to show network latency to top n most used ip addresses.
 
 ## Work Summary (Developer Facing)
-We finalized the tech stack required to implement our idea into code. Application modules were assigned to team members based on our previous experience and our fields of interest. We implemented a Go backend to support the following list of capabilities:
+We completed support for the frontend to display live data through our reverse proxy from the backend. This data replaces the previous dummy/mock data we had. We also m
   1. Collect ingress/egress network data from the Linux kernel network stack.
   2. Aggregate network data into cohesive JSON.
   3. Establish connection to frontend and forward network data.
@@ -26,34 +26,22 @@ We implemented a frontend to support the following:
 We implemented an SQL database to store user login information as well as an Nginx service to handle http requests and establish websockets connections from frontend to backend. We had an extremely steep, but productive learning curve to overcome with understanding eBPF and how to implement it. We also had to learn how to build an auth system from scratch, which took a nontrivial amount of research.
 
 ## Unfinished Work
-Since this is the first sprint, there are many ideas and features that are still in the oven that'll be ready for the next sprint. We have Issues that we made that might not be finished by the sprint deadline. Some of these include:
 
-Issue 1.) Improving Frontend UX and Visuals. (Didn't have enough time to sharpen up the visuals for this sprint deadline due to other bigger priorities)
-
-Issue 2.) Streamline the project and fix 90% of bugs. (Were getting there but since this is a early prototype theres many bugs)
+Issue 1.) Improving Frontend UX and Visuals. While the code is written for this part, and we are happy with the new look, we did not have time to merge it into the other commits prior to the sprint deadline. This will be completed early in sprint 3.
 
 
 ## Completed Issues/User Stories
 Here are links to the issues that we completed in this sprint:
 
- * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/9
- * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/1
- * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/4
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/10
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/3
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/12
 
-
- Reminders (Remove this section when you save the file):
-  * Each issue should be assigned to a milestone
-  * Each completed issue should be assigned to a pull request
-  * Each completed pull request should include a link to a "Before and After" video
-  * All team members who contributed to the issue should be assigned to it on GitHub
-  * Each issue should be assigned story points using a label
-  * Story points contribution of each team member should be indicated in a comment
  
  ## Incomplete Issues/User Stories
  Here are links to issues we worked on but did not complete in this sprint:
  
- * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/6 (Decided that this feature was not worth the time for this sprint as its only a visual enhancement and we had other priorities such as getting a connecting the frontend and backend)
- * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/5 (We did not have enough time to implement this feature given the short timespan of the sprint)
+ * https://github.com/WSU-CPTS322-SP26/Visual-Network/issues/6 (Require merging with main)
  
 ## Code Files for Review (top 5-6 files that are highlight / best files)
 Please review the following code files, which were actively developed during this sprint, for quality:
@@ -64,15 +52,16 @@ Please review the following code files, which were actively developed during thi
 ## Retrospective Summary
 Here's what went well:
   * Team communitcation and steady progress throughout the duration of the sprint.
-  * Completed issues that needed to be done before sprint 1.
+  * Completed most of the issues that needed to be done before sprint 2.
   * We have plans for the future on what to improve for the next sprint.
  
 Here's what we'd like to improve:
-   * Visuals and UX on the frontend side of things.
+   * Better formatted layout of metric displays
    * Improve the speed it takes the frontend to update with new data
+   * Keep code more modular for easier merging
   
 Here are changes we plan to implement in the next sprint:
-   * Integrate the database and user authentication with the project
-   * Verify that no bugs exist after sprint 2
-   * Include print/log statements to improve bug-finding and readabilty
-   * Finish touches on connecting backend and frontend
+   * Separate the frontend from the backend, so the backend daemon can be more light weight, with the frontend being run on a monitoring machine.
+   * Verify that no bugs exist during sprint 3
+   * Add a ping option from the frontend to test latency to different servers
+   * Streamline the user experience of the app
