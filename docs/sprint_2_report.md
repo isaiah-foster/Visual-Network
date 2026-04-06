@@ -13,6 +13,7 @@
  * Feature 3: The user may now view pie charts to visualize different network protocol usage over ingress and egress traffic.
  * Feature 4: The user may now view pie charts to visualize the packet volume of top n ip addresses.
  * Feature 5: The user may now view bar graphs to show network latency to top n most used ip addresses.
+ * Feature 6: Users may logout of account manually
 
 ## Work Summary (Developer Facing)
 We completed support for the frontend to display live data through our reverse proxy from the backend. This data replaces the previous dummy/mock data we had. We also m
@@ -28,7 +29,6 @@ We implemented an SQL database to store user login information as well as an Ngi
 ## Unfinished Work
 
 Issue 1.) Improving Frontend UX and Visuals. While the code is written for this part, and we are happy with the new look, we did not have time to merge it into the other commits prior to the sprint deadline. This will be completed early in sprint 3.
-
 
 ## Completed Issues/User Stories
 Here are links to the issues that we completed in this sprint:
@@ -65,3 +65,5 @@ Here are changes we plan to implement in the next sprint:
    * Verify that no bugs exist during sprint 3
    * Add a ping option from the frontend to test latency to different servers
    * Streamline the user experience of the app
+   * Allow admin users to edit user account information and remove users
+   * Possible implement forced admin password update after first login.
