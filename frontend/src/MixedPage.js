@@ -55,6 +55,20 @@ function MixedPage() {
   }, [latencySrc]);
 
   const formatMs = (value) => `${Number(value).toFixed(1)} ms`;
+  const chartTooltipStyle = {
+    contentStyle: {
+      backgroundColor: '#0a1b35',
+      border: '1px solid #30507f',
+      borderRadius: '8px',
+    },
+    labelStyle: {
+      color: '#b8c9e6',
+      fontWeight: 600,
+    },
+    itemStyle: {
+      color: '#e6efff',
+    },
+  };
       
         const COLORS = ["#FF6384", "#36A2EB", "#fe9c00", "#4BC0C0", "#ffe100"];
 
@@ -64,18 +78,18 @@ function MixedPage() {
         const barLatencyData = latencyData.length > 0 ? latencyData : [{ name: 'No data', value: 0 }];
       
         return (
-          <div className="w-full max-w-6xl mx-auto mt-8 px-4">
-            <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center ">Incoming/Outgoing Network Overview</h1>
+          <div className="dashboard-page">
+            <h1 className="dashboard-heading">Incoming/Outgoing Network Overview</h1>
             {(loading || error) && (
-              <p className="text-center text-slate-700 mb-4">
+              <p className="status-banner">
                 {error ? `Backend connection error: ${error}` : 'Loading backend network data...'}
               </p>
             )}
   
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="h-96 rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
-                <p className="text-center mb-2 font-semibold text-lg text-slate-800">Volume In</p>
-                <div className="flex-1">
+            <div className="dashboard-grid-three">
+              <div className="dashboard-card dashboard-card-compact">
+                <p className="dashboard-card-title">Volume In</p>
+                <div className="dashboard-chart">
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie data={pieInData} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
@@ -83,16 +97,20 @@ function MixedPage() {
                           <Cell key={index} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip
+                        contentStyle={chartTooltipStyle.contentStyle}
+                        labelStyle={chartTooltipStyle.labelStyle}
+                        itemStyle={chartTooltipStyle.itemStyle}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
   
-              <div className="h-96 rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
-                <p className="text-center mb-2 font-semibold text-lg text-slate-800"> Volume Out</p>
-                <div className="flex-1">
+              <div className="dashboard-card dashboard-card-compact">
+                <p className="dashboard-card-title">Volume Out</p>
+                <div className="dashboard-chart">
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie data={pieOutData} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
@@ -100,30 +118,19 @@ function MixedPage() {
                           <Cell key={index} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip
+                        contentStyle={chartTooltipStyle.contentStyle}
+                        labelStyle={chartTooltipStyle.labelStyle}
+                        itemStyle={chartTooltipStyle.itemStyle}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </div>
-  
-              <div className="h-96 md:col-span-2 rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
-                <p className="text-center mb-2 font-semibold text-lg text-slate-800">Latency</p>
-                <div className="flex-1">
-                  <ResponsiveContainer>
-                    <BarChart data={barLatencyData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" tickFormatter={formatMs} />
-                      <YAxis type="category" dataKey="name" width={90} />
-                      <Tooltip formatter={(value) => formatMs(value)} />
-                      <Bar dataKey="value" fill="#36A2EB" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
 
-              <div className="h-96 md:col-span-2 md:max-w-2xl md:mx-auto w-full rounded-xl border border-slate-200 bg-gray-300 p-4 shadow-sm flex flex-col hover:shadow-2xl">
-                <p className="text-center mb-2 font-semibold text-lg text-slate-800 ">Networking Protocol </p>
-                <div className="flex-1">
+              <div className="dashboard-card dashboard-card-compact">
+                <p className="dashboard-card-title">Networking Protocol</p>
+                <div className="dashboard-chart">
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie data={pieProtocolData} dataKey="value" nameKey="name" outerRadius="72%" label cx="50%" cy="52%">
@@ -131,10 +138,35 @@ function MixedPage() {
                           <Cell key={index} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip
+                        contentStyle={chartTooltipStyle.contentStyle}
+                        labelStyle={chartTooltipStyle.labelStyle}
+                        itemStyle={chartTooltipStyle.itemStyle}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card dashboard-card-full dashboard-section-gap">
+              <p className="dashboard-card-title">Latency</p>
+              <div className="dashboard-chart">
+                <ResponsiveContainer>
+                  <BarChart data={barLatencyData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" tickFormatter={formatMs} tick={{ fill: '#b8c9e6' }} />
+                    <YAxis type="category" dataKey="name" width={90} tick={{ fill: '#b8c9e6' }} />
+                    <Tooltip
+                      formatter={(value) => formatMs(value)}
+                      contentStyle={chartTooltipStyle.contentStyle}
+                      labelStyle={chartTooltipStyle.labelStyle}
+                      itemStyle={chartTooltipStyle.itemStyle}
+                      cursor={{ fill: 'rgba(59, 130, 246, 0.18)' }}
+                    />
+                    <Bar dataKey="value" fill="#36A2EB" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>

@@ -28,18 +28,43 @@ function AdminCreateUserPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Create User</h1>
-      {message && <p>{message}</p>}
-      <input name="user_id" value={form.user_id} onChange={handleChange} placeholder="User ID" />
-      <input name="email" value={form.email} onChange={handleChange} placeholder="Email" />
-      <input name="password" value={form.password} onChange={handleChange} placeholder="Password" type="password" />
-      <select name="role" value={form.role} onChange={handleChange}>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-      </select>
-      <button type="submit">Create User</button>
-    </form>
+    <div className="form-wrap">
+      <div className="form-card">
+        <h1 className="form-title">Create User</h1>
+        <p className="form-text">Add a new account and assign its role.</p>
+        {message && (
+          <p className={`form-message ${message.includes('successfully') ? 'form-message-success' : 'form-message-error'}`}>
+            {message}
+          </p>
+        )}
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label>User ID</label>
+            <input name="user_id" value={form.user_id} onChange={handleChange} placeholder="User ID" />
+          </div>
+
+          <div className="field">
+            <label>Email</label>
+            <input name="email" value={form.email} onChange={handleChange} placeholder="Email" />
+          </div>
+
+          <div className="field">
+            <label>Password</label>
+            <input name="password" value={form.password} onChange={handleChange} placeholder="Password" type="password" />
+          </div>
+
+          <div className="field">
+            <label>Role</label>
+            <select name="role" value={form.role} onChange={handleChange}>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <button className="button button-primary" type="submit">Create User</button>
+        </form>
+      </div>
+    </div>
   );
 }
 

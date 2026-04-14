@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 function NavBar() {
@@ -16,16 +16,25 @@ function NavBar() {
   };
 
   return (
-    <nav style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', padding: '15px', backgroundColor: '#969896' }}>
-      <div>
-        <Link to="/" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Home</Link>
-        <Link to="/in" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>In Page</Link>
-        <Link to="/out" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Out Page</Link>
-        <Link to="/mixed" className='mr-6 inline-block transition-transform durtion-150 ease-out hover:-translate-y-0.5 transition-all ease-in'>Mixed Page</Link>
-        {user?.role === 'admin' && <Link to="/admin/users" className='mr-6 inline-block'>Add User</Link>}
-      </div>
-      {user && <button onClick={handleLogout}>Logout</button>}
-    </nav>
+    <div className="app-nav-wrap">
+      <nav className="app-nav">
+        <div className="app-nav-left">
+          <NavLink to="/" end className="app-brand">VisualNet</NavLink>
+          <div className="app-nav-links">
+            <NavLink to="/" end className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
+            <NavLink to="/in" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>In Page</NavLink>
+            <NavLink to="/out" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>Out Page</NavLink>
+            <NavLink to="/mixed" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>Mixed Page</NavLink>
+            {user?.role === 'admin' && (
+              <NavLink to="/admin/users" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>
+                Add User
+              </NavLink>
+            )}
+          </div>
+        </div>
+        {user && <button className="button button-ghost" onClick={handleLogout}>Logout</button>}
+      </nav>
+    </div>
   );
 }
 

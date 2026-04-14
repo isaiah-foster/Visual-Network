@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 function LoginPage() {
-  const [userId, setUserId] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [error, setError] = React.useState('');
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
@@ -42,30 +42,31 @@ function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <h1>Login</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '10px' }}>
-          <label>User ID</label>
-          <input
-            type="text"
-            value={userId}
-            onChange={e => setUserId(e.target.value)}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '4px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '4px' }}
-          />
-        </div>
-        <button type="submit" style={{ padding: '8px 16px' }}>Login</button>
-      </form>
+    <div className="form-wrap">
+      <div className="form-card">
+        <h1 className="form-title">Login</h1>
+        <p className="form-text">Sign in to view live network dashboards.</p>
+        {error && <p className="form-message form-message-error">{error}</p>}
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label>User ID</label>
+            <input
+              type="text"
+              value={userId}
+              onChange={e => setUserId(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+          </div>
+          <button className="button button-primary" type="submit">Login</button>
+        </form>
+      </div>
     </div>
   );
 }
