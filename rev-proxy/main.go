@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -24,16 +25,17 @@ import (
 )
 
 type Config struct {
-	ListenAddr  string
-	FrontendDir string
-	AuthService string
-	BackendAddr string
-	TLSCert     string
-	TLSKey      string
-	MySQLDSN    string
-	UseHTTPS    bool
-	MetricsPort string
-	HTTPAddr    string
+	ListenAddr    string
+	FrontendDir   string
+	AuthService   string
+	BackendAddr   string
+	BackendAPIKey string // bearer token sent to the traffic aggregator
+	TLSCert       string
+	TLSKey        string
+	MySQLDSN      string
+	UseHTTPS      bool
+	MetricsPort   string
+	HTTPAddr      string
 }
 
 type User struct {
@@ -102,11 +104,14 @@ type MetricsMessage struct {
 	Data      interface{} `json:"data"`
 }
 
+const bearerPrefix = "Bearer "
+
 func main() {
 	listenAddr := flag.String("listen", ":8443", "HTTPS listen address")
 	frontendDir := flag.String("frontend", "../frontend/build", "Frontend build directory")
 	authService := flag.String("auth", "http://localhost:8081", "Auth service URL")
 	backendAddr := flag.String("backend", "http://localhost:9090", "Backend service URL")
+	backendAPIKey := flag.String("backend-api-key", "", "Bearer token for the traffic aggregator API (optional)")
 	tlsCert := flag.String("cert", "", "TLS certificate file (leave empty for no HTTPS)")
 	tlsKey := flag.String("key", "", "TLS key file (leave empty for no HTTPS)")
 	mysqlDSN := flag.String("mysql-dsn", "", "MySQL DSN for auth verification")
@@ -115,15 +120,16 @@ func main() {
 	flag.Parse()
 
 	cfg := Config{
-		ListenAddr:  *listenAddr,
-		FrontendDir: *frontendDir,
-		AuthService: *authService,
-		BackendAddr: *backendAddr,
-		TLSCert:     *tlsCert,
-		TLSKey:      *tlsKey,
-		MySQLDSN:    *mysqlDSN,
-		MetricsPort: *metricsPort,
-		HTTPAddr:    *httpPort,
+		ListenAddr:    *listenAddr,
+		FrontendDir:   *frontendDir,
+		AuthService:   *authService,
+		BackendAddr:   *backendAddr,
+		BackendAPIKey: *backendAPIKey,
+		TLSCert:       *tlsCert,
+		TLSKey:        *tlsKey,
+		MySQLDSN:      *mysqlDSN,
+		MetricsPort:   *metricsPort,
+		HTTPAddr:      *httpPort,
 	}
 	cfg.UseHTTPS = cfg.TLSCert != "" && cfg.TLSKey != ""
 
@@ -165,8 +171,10 @@ func main() {
 		},
 	}
 
-	// Start metrics hub
+	// Start metrics hub and backend poller
 	go srv.metricsHub.run()
+	pollCtx, pollCancel := context.WithCancel(context.Background())
+	go srv.startBackendPoller(pollCtx)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -252,6 +260,7 @@ func main() {
 	// Wait for shutdown signal
 	sig := <-sigChan
 	log.Printf("Received signal: %v, shutting down...", sig)
+	pollCancel()
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -268,6 +277,65 @@ func main() {
 	}
 
 	log.Println("Reverse proxy stopped")
+}
+
+// startBackendPoller polls the traffic aggregator every second and broadcasts
+// combined topology+metrics updates to all connected WebSocket clients.
+func (s *Server) startBackendPoller(ctx context.Context) {
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	fetch := func(path string) (json.RawMessage, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.config.BackendAddr+path, nil)
+		if err != nil {
+			return nil, err
+		}
+		if s.config.BackendAPIKey != "" {
+			req.Header.Set("Authorization", bearerPrefix+s.config.BackendAPIKey)
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("backend returned %d for %s", resp.StatusCode, path)
+		}
+		var raw json.RawMessage
+		return raw, json.NewDecoder(resp.Body).Decode(&raw)
+	}
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			type result struct {
+				data json.RawMessage
+				err  error
+			}
+			topoCh := make(chan result, 1)
+			metCh := make(chan result, 1)
+			go func() { d, err := fetch("/topology"); topoCh <- result{d, err} }()
+			go func() { d, err := fetch("/metrics"); metCh <- result{d, err} }()
+			topoRes := <-topoCh
+			metRes := <-metCh
+			if topoRes.err != nil {
+				log.Printf("backend poller: topology fetch error: %v", topoRes.err)
+				continue
+			}
+			if metRes.err != nil {
+				log.Printf("backend poller: metrics fetch error: %v", metRes.err)
+				continue
+			}
+			s.broadcastMetrics(map[string]json.RawMessage{
+				"topology": topoRes.data,
+				"metrics":  metRes.data,
+			})
+		}
+	}
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -385,10 +453,7 @@ func (h *MetricsHub) run() {
 }
 
 func (c *MetricsClient) readPump() {
-	defer func() {
-		// Cleanup on disconnect
-		// Add any necessary cleanup here
-	}()
+	defer c.conn.Close()
 
 	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	c.conn.SetPongHandler(func(string) error {

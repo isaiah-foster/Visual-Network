@@ -7,12 +7,74 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"visual-network/traffic-aggregation/aggregator"
 	"visual-network/traffic-aggregation/ebpf"
 )
+
+const bearerPrefix = "Bearer "
+
+// corsMiddleware sets CORS headers. ALLOWED_ORIGINS env var controls allowed origins
+// (comma-separated). Defaults to "*" when unset so local dev works without config.
+func corsMiddleware(next http.Handler) http.Handler {
+	allowed := os.Getenv("ALLOWED_ORIGINS")
+	if allowed == "" {
+		allowed = "*"
+	}
+	origins := strings.Split(allowed, ",")
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		var allow string
+		if allowed == "*" {
+			allow = "*"
+		} else {
+			for _, o := range origins {
+				if strings.TrimSpace(o) == origin {
+					allow = origin
+					break
+				}
+			}
+		}
+		// Only set header when the origin is permitted; unlisted origins
+		// receive no ACAO header so the browser blocks the request.
+		if allow != "" {
+			w.Header().Set("Access-Control-Allow-Origin", allow)
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		}
+
+		if r.Method == http.MethodOptions {
+			if allow == "" {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// apiKeyMiddleware enforces bearer-token auth when COLLECTOR_API_KEY is set.
+// When the env var is empty the middleware is a no-op so local dev needs no config.
+func apiKeyMiddleware(apiKey string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if apiKey == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth := r.Header.Get("Authorization")
+		if auth != bearerPrefix+apiKey {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -42,6 +104,11 @@ func main() {
 		apiAddr = ":9090"
 	}
 
+	apiKey := os.Getenv("COLLECTOR_API_KEY")
+	if apiKey != "" {
+		log.Println("API key authentication enabled")
+	}
+
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -58,7 +125,7 @@ func main() {
 
 	apiServer := &http.Server{
 		Addr:         apiAddr,
-		Handler:      apiMux,
+		Handler:      corsMiddleware(apiKeyMiddleware(apiKey, apiMux)),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
