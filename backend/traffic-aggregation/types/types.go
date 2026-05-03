@@ -34,7 +34,7 @@ type FlowStats struct {
 	Bytes        uint64
 	LastSeen     uint64 // nanoseconds
 	FirstSeen    uint64 // nanoseconds
-	LatencySum   uint32 // microseconds
+	LatencySum   uint64 // microseconds (u64 prevents overflow on long-lived flows)
 	LatencyCount uint32
 	State        uint8
 	L7Protocol   uint8
@@ -54,19 +54,35 @@ type ConnEvent struct {
 	Timestamp  uint64
 }
 
+// RTTEvent is sent for each measured TCP handshake RTT, enabling percentile computation
+type RTTEvent struct {
+	SrcIP     uint32
+	DstIP     uint32
+	SrcPort   uint16
+	DstPort   uint16
+	Protocol  uint8
+	_         [3]byte
+	RTTUs     uint32
+	Timestamp uint64
+}
+
 // Flow represents a complete network flow with computed fields
 type Flow struct {
-	Key          FlowKey
-	Stats        FlowStats
-	SrcIPStr     string
-	DstIPStr     string
-	SrcName      string // hostname or company name
-	DstName      string
-	ProtocolName string // "TCP", "UDP", "ICMP"
-	L7ProtoName  string // "HTTP", "HTTPS", "DNS", etc.
-	AvgLatencyMs float64
-	Active       bool
-	LastUpdate   time.Time
+	Key             FlowKey
+	Stats           FlowStats
+	SrcIPStr        string
+	DstIPStr        string
+	SrcName         string // hostname or company name
+	DstName         string
+	ProtocolName    string // "TCP", "UDP", "ICMP"
+	L7ProtoName     string // "HTTP", "HTTPS", "DNS", etc.
+	AvgLatencyMs    float64
+	P50LatencyMs    float64
+	P95LatencyMs    float64
+	P99LatencyMs    float64
+	LatencyJitterMs float64
+	Active          bool
+	LastUpdate      time.Time
 }
 
 // TopologyUpdate represents changes to send to frontend
@@ -94,6 +110,8 @@ type LatencyInfo struct {
 	SrcName      string  `json:"src_name"`
 	DstName      string  `json:"dst_name"`
 	AvgLatencyMs float64 `json:"avg_latency_ms"`
+	P95LatencyMs float64 `json:"p95_latency_ms"`
+	P99LatencyMs float64 `json:"p99_latency_ms"`
 	Protocol     string  `json:"protocol"`
 }
 

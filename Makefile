@@ -1,4 +1,4 @@
-.PHONY: help setup build run clean run-frontend run-backend run-proxy run-full setup-reverse-proxy build-reverse-proxy
+.PHONY: help setup build run clean run-frontend run-backend run-proxy run-full setup-reverse-proxy build-reverse-proxy run-collector-remote run-proxy-remote
 
 # Default target
 help:
@@ -179,3 +179,34 @@ run-full:
 	@echo "  $$ make setup-reverse-proxy"
 	@echo "  Then access via: https://localhost:8443"
 	@echo ""
+
+# ---------------------------------------------------------------------------
+# Split-host deployment (Issue #13)
+#
+# Host A (network monitor, requires root for eBPF):
+#   make run-collector-remote IFACE=eth0 COLLECTOR_API_KEY=secret
+#
+# Host B (management host, no special privileges):
+#   make run-proxy-remote COLLECTOR_HOST=<host-a-ip> COLLECTOR_API_KEY=secret
+#
+# The reverse proxy on Host B connects to the aggregator on Host A using the
+# shared API key and forwards data to browser clients via WebSocket.
+# ---------------------------------------------------------------------------
+
+# Run collector in remote-accessible mode with optional API key protection.
+run-collector-remote:
+	@if [ -z "$(IFACE)" ]; then \
+		echo "Error: IFACE not specified."; \
+		echo "Usage: make run-collector-remote IFACE=eth0 [COLLECTOR_API_KEY=secret]"; \
+		exit 1; \
+	fi
+	@echo "Starting collector (remote mode) on $(IFACE), API addr 0.0.0.0:9090..."
+	BACKEND_API_ADDR=0.0.0.0:9090 COLLECTOR_API_KEY=$(COLLECTOR_API_KEY) \
+		cd backend && $(MAKE) run-collector IFACE=$(IFACE)
+
+# Run the reverse proxy pointing to a remote collector host.
+COLLECTOR_HOST ?= localhost
+run-proxy-remote:
+	@echo "Starting reverse proxy -> collector at http://$(COLLECTOR_HOST):9090 ..."
+	cd rev-proxy && $(MAKE) run-no-auth \
+		EXTRA_FLAGS="-backend http://$(COLLECTOR_HOST):9090 -backend-api-key $(COLLECTOR_API_KEY)"

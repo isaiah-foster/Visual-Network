@@ -117,53 +117,61 @@ export function useNetworkData(pollMs = 3000) {
   const [error, setError] = useState('');
   const lastNonEmptyTopologyRef = useRef(null);
   const lastNonEmptyAtRef = useRef(0);
+  const wsConnectedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
+    let ws = null;
+    let pollTimer = null;
 
+    const applyUpdate = (topologyRaw, metricsRaw) => {
+      const rawFlows = topologyRaw?.NewFlows || topologyRaw?.new_flows || [];
+      const normalizedTopology = {
+        ...topologyRaw,
+        flows: rawFlows.map(normalizeFlow)
+      };
+
+      const now = Date.now();
+      let topologyToSet = normalizedTopology;
+      if (normalizedTopology.flows.length > 0) {
+        lastNonEmptyTopologyRef.current = normalizedTopology;
+        lastNonEmptyAtRef.current = now;
+      } else if (
+        lastNonEmptyTopologyRef.current &&
+        now - lastNonEmptyAtRef.current <= EMPTY_SNAPSHOT_GRACE_MS
+      ) {
+        topologyToSet = {
+          ...normalizedTopology,
+          flows: lastNonEmptyTopologyRef.current.flows,
+          summary: lastNonEmptyTopologyRef.current.summary || normalizedTopology.summary,
+          Summary: lastNonEmptyTopologyRef.current.Summary || normalizedTopology.Summary,
+        };
+      }
+
+      const srcLatencyRaw = metricsRaw?.TopLatencySrc || metricsRaw?.top_latency_src || [];
+      const dstLatencyRaw = metricsRaw?.TopLatencyDst || metricsRaw?.top_latency_dst || [];
+      const normalizedMetrics = {
+        ...metricsRaw,
+        topLatencySrc: srcLatencyRaw.map((item) => normalizeLatency(item, 'src')),
+        topLatencyDst: dstLatencyRaw.map((item) => normalizeLatency(item, 'dst'))
+      };
+
+      setTopology(topologyToSet);
+      setMetrics(normalizedMetrics);
+      setError('');
+      setLoading(false);
+    };
+
+    // --- HTTP polling fallback ---
     const load = async () => {
+      if (wsConnectedRef.current) return;
       try {
         const [nextTopologyRaw, nextMetricsRaw] = await Promise.all([
           fetchJson('/topology'),
           fetchJson('/metrics')
         ]);
-
-        const rawFlows = nextTopologyRaw?.NewFlows || nextTopologyRaw?.new_flows || [];
-        const normalizedTopology = {
-          ...nextTopologyRaw,
-          flows: rawFlows.map(normalizeFlow)
-        };
-
-        const now = Date.now();
-        let topologyToSet = normalizedTopology;
-        if (normalizedTopology.flows.length > 0) {
-          lastNonEmptyTopologyRef.current = normalizedTopology;
-          lastNonEmptyAtRef.current = now;
-        } else if (
-          lastNonEmptyTopologyRef.current &&
-          now-lastNonEmptyAtRef.current <= EMPTY_SNAPSHOT_GRACE_MS
-        ) {
-          topologyToSet = {
-            ...normalizedTopology,
-            flows: lastNonEmptyTopologyRef.current.flows,
-            summary: lastNonEmptyTopologyRef.current.summary || normalizedTopology.summary,
-            Summary: lastNonEmptyTopologyRef.current.Summary || normalizedTopology.Summary,
-          };
-        }
-
-        const srcLatencyRaw = nextMetricsRaw?.TopLatencySrc || nextMetricsRaw?.top_latency_src || [];
-        const dstLatencyRaw = nextMetricsRaw?.TopLatencyDst || nextMetricsRaw?.top_latency_dst || [];
-        const normalizedMetrics = {
-          ...nextMetricsRaw,
-          topLatencySrc: srcLatencyRaw.map((item) => normalizeLatency(item, 'src')),
-          topLatencyDst: dstLatencyRaw.map((item) => normalizeLatency(item, 'dst'))
-        };
-
         if (!cancelled) {
-          setTopology(topologyToSet);
-          setMetrics(normalizedMetrics);
-          setError('');
-          setLoading(false);
+          applyUpdate(nextTopologyRaw, nextMetricsRaw);
         }
       } catch (err) {
         if (!cancelled) {
@@ -173,12 +181,52 @@ export function useNetworkData(pollMs = 3000) {
       }
     };
 
+    // --- WebSocket (preferred) ---
+    const connectWS = () => {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${window.location.host}/api/metrics/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        wsConnectedRef.current = true;
+      };
+
+      ws.onmessage = (evt) => {
+        if (cancelled) return;
+        try {
+          const msg = JSON.parse(evt.data);
+          const payload = msg?.data || msg;
+          const topologyRaw = payload?.topology;
+          const metricsRaw = payload?.metrics;
+          if (topologyRaw && metricsRaw) {
+            applyUpdate(topologyRaw, metricsRaw);
+          }
+        } catch (_) {
+          // malformed frame — ignore
+        }
+      };
+
+      ws.onerror = () => {
+        wsConnectedRef.current = false;
+      };
+
+      ws.onclose = () => {
+        wsConnectedRef.current = false;
+        if (!cancelled) {
+          setTimeout(connectWS, 5000);
+        }
+      };
+    };
+
+    connectWS();
     load();
-    const timer = setInterval(load, pollMs);
+    pollTimer = setInterval(load, pollMs);
 
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      wsConnectedRef.current = false;
+      if (ws) ws.close();
+      clearInterval(pollTimer);
     };
   }, [pollMs]);
 

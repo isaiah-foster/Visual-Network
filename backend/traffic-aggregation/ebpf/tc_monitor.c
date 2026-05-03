@@ -41,7 +41,7 @@ struct flow_stats {
     __u64 bytes;
     __u64 last_seen;
     __u64 first_seen;
-    __u32 latency_sum;  // Sum of RTT measurements in microseconds
+    __u64 latency_sum;   // Sum of RTT measurements in microseconds (u64 prevents overflow)
     __u32 latency_count; // Number of RTT samples
     __u8 state;
     __u8 l7_protocol;
@@ -67,6 +67,18 @@ struct tcp_handshake {
     __u32 syn_seq;
 } __attribute__((packed));
 
+// RTT measurement event - sent to userspace for each measured TCP handshake RTT
+struct rtt_event {
+    __u32 src_ip;
+    __u32 dst_ip;
+    __u16 src_port;
+    __u16 dst_port;
+    __u8  protocol;
+    __u8  pad[3];
+    __u32 rtt_us;
+    __u64 timestamp;
+} __attribute__((packed));
+
 // BPF Maps
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -79,6 +91,11 @@ struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 256 * 1024);  // 256KB ring buffer
 } events SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 256 * 1024);  // 256KB ring buffer for RTT samples
+} rtt_events SEC(".maps");
 
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -227,10 +244,23 @@ int tc_monitor(struct __sk_buff *skb) {
                     // Update latency stats
                     stats->latency_sum += rtt_us;
                     stats->latency_count++;
-                    
+
+                    // Emit individual RTT sample to userspace for percentile computation
+                    struct rtt_event *rev = bpf_ringbuf_reserve(&rtt_events, sizeof(*rev), 0);
+                    if (rev) {
+                        rev->src_ip   = key.src_ip;
+                        rev->dst_ip   = key.dst_ip;
+                        rev->src_port = key.src_port;
+                        rev->dst_port = key.dst_port;
+                        rev->protocol = key.protocol;
+                        rev->rtt_us   = rtt_us;
+                        rev->timestamp = now;
+                        bpf_ringbuf_submit(rev, 0);
+                    }
+
                     // Update state
                     stats->state = STATE_ESTABLISHED;
-                    
+
                     // Clean up handshake tracking
                     bpf_map_delete_elem(&handshake_map, &reverse_key);
                 }

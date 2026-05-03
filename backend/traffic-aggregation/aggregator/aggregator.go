@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"sort"
 	"strings"
@@ -22,12 +23,16 @@ const (
 	CleanupInterval     = 5 * time.Second
 )
 
+const maxRTTSamples = 100
+
 // Aggregator processes eBPF data and prepares topology updates
 type Aggregator struct {
 	monitor      *ebpf.Monitor
 	store        *storage.Store
 	flows        map[types.FlowKey]*types.Flow
 	flowsMutex   sync.RWMutex
+	rttSamples   map[types.FlowKey][]float64 // per-flow sliding window of RTT samples in ms
+	rttMutex     sync.Mutex
 	ipCache      map[string]*types.IPInfo
 	ipCacheMutex sync.RWMutex
 	updateChan   chan types.TopologyUpdate
@@ -56,6 +61,7 @@ func NewAggregatorWithStorage(monitor *ebpf.Monitor, dataDir string, maxFiles in
 		monitor:     monitor,
 		store:       store,
 		flows:       make(map[types.FlowKey]*types.Flow),
+		rttSamples:  make(map[types.FlowKey][]float64),
 		ipCache:     make(map[string]*types.IPInfo),
 		updateChan:  make(chan types.TopologyUpdate, 10),
 		metricsChan: make(chan types.MetricsUpdate, 10),
@@ -66,6 +72,7 @@ func NewAggregatorWithStorage(monitor *ebpf.Monitor, dataDir string, maxFiles in
 
 	// Start background workers
 	go a.processEvents()
+	go a.processRTTEvents()
 	go a.aggregateLoop()
 	go a.cleanupLoop()
 
@@ -127,6 +134,76 @@ func (a *Aggregator) handleNewConnection(event types.ConnEvent) {
 		srcIP, event.SrcPort, dstIP, event.DstPort, flow.ProtocolName)
 }
 
+// processRTTEvents drains the RTT event channel and accumulates samples per flow
+func (a *Aggregator) processRTTEvents() {
+	for {
+		select {
+		case <-a.stopChan:
+			return
+		case ev := <-a.monitor.RTTEventChannel():
+			key := types.FlowKey{
+				SrcIP:    ev.SrcIP,
+				DstIP:    ev.DstIP,
+				SrcPort:  ev.SrcPort,
+				DstPort:  ev.DstPort,
+				Protocol: ev.Protocol,
+			}
+			sampleMs := float64(ev.RTTUs) / 1000.0
+
+			a.rttMutex.Lock()
+			samples := a.rttSamples[key]
+			samples = append(samples, sampleMs)
+			if len(samples) > maxRTTSamples {
+				samples = samples[len(samples)-maxRTTSamples:]
+			}
+			a.rttSamples[key] = samples
+			a.rttMutex.Unlock()
+		}
+	}
+}
+
+// percentile returns the p-th percentile (0–100) of a sorted slice.
+// The slice must be sorted ascending before calling.
+func percentile(sorted []float64, p float64) float64 {
+	if len(sorted) == 0 {
+		return 0
+	}
+	idx := p / 100.0 * float64(len(sorted)-1)
+	lo := int(idx)
+	hi := lo + 1
+	if hi >= len(sorted) {
+		return sorted[len(sorted)-1]
+	}
+	frac := idx - float64(lo)
+	return sorted[lo] + frac*(sorted[hi]-sorted[lo])
+}
+
+// latencyStats computes avg, p50, p95, p99, and jitter (stddev) from a sample window.
+// samples is sorted in-place; callers must pass their own copy.
+func latencyStats(samples []float64) (avg, p50, p95, p99, jitter float64) {
+	if len(samples) == 0 {
+		return
+	}
+	sort.Float64s(samples)
+
+	var sum float64
+	for _, v := range samples {
+		sum += v
+	}
+	avg = sum / float64(len(samples))
+	p50 = percentile(samples, 50)
+	p95 = percentile(samples, 95)
+	p99 = percentile(samples, 99)
+
+	var variance float64
+	for _, v := range samples {
+		d := v - avg
+		variance += d * d
+	}
+	jitter = math.Sqrt(variance / float64(len(samples)))
+	return
+}
+
 // aggregateLoop periodically reads eBPF maps and sends updates
 func (a *Aggregator) aggregateLoop() {
 	ticker := time.NewTicker(AggregationInterval)
@@ -186,18 +263,24 @@ func (a *Aggregator) aggregate() {
 		flow.Stats = stats
 		flow.LastUpdate = time.Now()
 
-		// Calculate average latency
+		// Calculate latency from measured RTT data only (no fallback estimation)
 		if stats.LatencyCount > 0 {
 			flow.AvgLatencyMs = float64(stats.LatencySum) / float64(stats.LatencyCount) / 1000.0
-		} else if stats.LastSeen > stats.FirstSeen {
-			deltaNs := stats.LastSeen - stats.FirstSeen
-			if stats.Packets > 1 {
-				flow.AvgLatencyMs = float64(deltaNs) / float64(stats.Packets-1) / 1_000_000.0
-			} else {
-				flow.AvgLatencyMs = float64(deltaNs) / 1_000_000.0
-			}
 		} else {
 			flow.AvgLatencyMs = 0
+		}
+
+		// Copy RTT samples under the mutex so latencyStats can't race with processRTTEvents.
+		a.rttMutex.Lock()
+		var samples []float64
+		if raw := a.rttSamples[key]; len(raw) > 0 {
+			samples = make([]float64, len(raw))
+			copy(samples, raw)
+		}
+		a.rttMutex.Unlock()
+		if len(samples) > 0 {
+			flow.AvgLatencyMs, flow.P50LatencyMs, flow.P95LatencyMs, flow.P99LatencyMs, flow.LatencyJitterMs =
+				latencyStats(samples)
 		}
 
 		// Get resolved names
@@ -212,15 +295,26 @@ func (a *Aggregator) aggregate() {
 	}
 
 	// Find removed flows (exist in our map but not in eBPF)
+	var staleRTTKeys []types.FlowKey
 	for key, flow := range a.flows {
 		if _, exists := ebpfFlows[key]; !exists {
 			removedKeys = append(removedKeys, key)
+			staleRTTKeys = append(staleRTTKeys, key)
 			delete(a.flows, key)
 			flow.Active = false
 		}
 	}
 
 	a.flowsMutex.Unlock()
+
+	// Delete stale RTT samples outside flowsMutex to avoid nested lock ordering.
+	if len(staleRTTKeys) > 0 {
+		a.rttMutex.Lock()
+		for _, k := range staleRTTKeys {
+			delete(a.rttSamples, k)
+		}
+		a.rttMutex.Unlock()
+	}
 
 	// Send topology update
 	if len(newFlows) > 0 || len(updatedFlows) > 0 || len(removedKeys) > 0 {
@@ -340,6 +434,8 @@ func (a *Aggregator) calculateMetricsLocked() types.MetricsUpdate {
 				SrcName:      flow.SrcName,
 				DstName:      flow.DstName,
 				AvgLatencyMs: flow.AvgLatencyMs,
+				P95LatencyMs: flow.P95LatencyMs,
+				P99LatencyMs: flow.P99LatencyMs,
 				Protocol:     flow.ProtocolName,
 			})
 		}

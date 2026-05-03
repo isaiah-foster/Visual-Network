@@ -1,7 +1,6 @@
-APP_DIR := Visual-Network/frontend
-NPM := npm
-
 .PHONY: help setup run build test clean
+
+NPM := npm
 
 help:
 	@echo "Available targets:"
@@ -12,7 +11,7 @@ help:
 	@echo "  make clean  - Remove node_modules and build output"
 
 setup:
-	$ sudo apt install nodejs npm
+	sudo apt install nodejs npm
 	$(NPM) install
 
 run:

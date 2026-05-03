@@ -33,7 +33,7 @@ type bpfFlowStats struct {
 	Bytes        uint64
 	LastSeen     uint64
 	FirstSeen    uint64
-	LatencySum   uint32
+	LatencySum   uint64 // u64 in C to prevent overflow
 	LatencyCount uint32
 	State        uint8
 	L7Protocol   uint8
@@ -42,12 +42,14 @@ type bpfFlowStats struct {
 
 // Monitor manages the eBPF program and data collection
 type Monitor struct {
-	objs      *tc_monitorObjects
-	link      link.Link
-	ringbuf   *ringbuf.Reader
-	iface     string
-	eventChan chan types.ConnEvent
-	stopChan  chan struct{}
+	objs         *tc_monitorObjects
+	link         link.Link
+	ringbuf      *ringbuf.Reader
+	rttRingbuf   *ringbuf.Reader
+	iface        string
+	eventChan    chan types.ConnEvent
+	rttEventChan chan types.RTTEvent
+	stopChan     chan struct{}
 }
 
 // NewMonitor creates a new eBPF monitor
@@ -72,7 +74,7 @@ func NewMonitor(ifaceName string) (*Monitor, error) {
 		return nil, fmt.Errorf("attaching TC program: %w", err)
 	}
 
-	// Open ring buffer for events
+	// Open ring buffer for connection events
 	rd, err := ringbuf.NewReader(objs.Events)
 	if err != nil {
 		l.Close()
@@ -80,17 +82,29 @@ func NewMonitor(ifaceName string) (*Monitor, error) {
 		return nil, fmt.Errorf("opening ring buffer: %w", err)
 	}
 
-	m := &Monitor{
-		objs:      objs,
-		link:      l,
-		ringbuf:   rd,
-		iface:     ifaceName,
-		eventChan: make(chan types.ConnEvent, 100),
-		stopChan:  make(chan struct{}),
+	// Open ring buffer for RTT measurement events
+	rttRd, err := ringbuf.NewReader(objs.RttEvents)
+	if err != nil {
+		rd.Close()
+		l.Close()
+		objs.Close()
+		return nil, fmt.Errorf("opening RTT ring buffer: %w", err)
 	}
 
-	// Start ring buffer reader
+	m := &Monitor{
+		objs:         objs,
+		link:         l,
+		ringbuf:      rd,
+		rttRingbuf:   rttRd,
+		iface:        ifaceName,
+		eventChan:    make(chan types.ConnEvent, 100),
+		rttEventChan: make(chan types.RTTEvent, 500),
+		stopChan:     make(chan struct{}),
+	}
+
+	// Start ring buffer readers
 	go m.readEvents()
+	go m.readRTTEvents()
 
 	log.Printf("eBPF monitor attached to interface %s", ifaceName)
 	return m, nil
@@ -115,43 +129,76 @@ func attachTCProgram(ifaceIndex int, prog *ebpf.Program) (link.Link, error) {
 	return link.AttachTCX(opts)
 }
 
-// readEvents reads from the ring buffer and sends to event channel
+// readEvents reads from the ring buffer and sends to event channel.
+// Shutdown is signaled by calling m.ringbuf.Close(), which causes Read to return ErrClosed.
 func (m *Monitor) readEvents() {
 	for {
+		record, err := m.ringbuf.Read()
+		if err != nil {
+			if errors.Is(err, ringbuf.ErrClosed) {
+				return
+			}
+			log.Printf("reading from ring buffer: %v", err)
+			continue
+		}
+
+		if len(record.RawSample) < 24 {
+			continue
+		}
+
+		event := types.ConnEvent{
+			SrcIP:      binary.LittleEndian.Uint32(record.RawSample[0:4]),
+			DstIP:      binary.LittleEndian.Uint32(record.RawSample[4:8]),
+			SrcPort:    binary.LittleEndian.Uint16(record.RawSample[8:10]),
+			DstPort:    binary.LittleEndian.Uint16(record.RawSample[10:12]),
+			Protocol:   record.RawSample[12],
+			L7Protocol: record.RawSample[13],
+			State:      record.RawSample[14],
+			Timestamp:  binary.LittleEndian.Uint64(record.RawSample[16:24]),
+		}
+
 		select {
-		case <-m.stopChan:
-			return
+		case m.eventChan <- event:
 		default:
-			record, err := m.ringbuf.Read()
-			if err != nil {
-				if errors.Is(err, ringbuf.ErrClosed) {
-					return
-				}
-				log.Printf("reading from ring buffer: %v", err)
-				continue
-			}
+			log.Printf("event channel full, dropping event")
+		}
+	}
+}
 
-			// Parse event
-			if len(record.RawSample) < 24 {
-				continue
+// readRTTEvents reads from the RTT ring buffer and sends to rttEventChan.
+// Shutdown is signaled by calling m.rttRingbuf.Close(), which causes Read to return ErrClosed.
+// rtt_event layout (28 bytes):
+// [0-3] src_ip, [4-7] dst_ip, [8-9] src_port, [10-11] dst_port,
+// [12] protocol, [13-15] pad, [16-19] rtt_us, [20-27] timestamp
+func (m *Monitor) readRTTEvents() {
+	for {
+		record, err := m.rttRingbuf.Read()
+		if err != nil {
+			if errors.Is(err, ringbuf.ErrClosed) {
+				return
 			}
+			log.Printf("reading from RTT ring buffer: %v", err)
+			continue
+		}
 
-			event := types.ConnEvent{
-				SrcIP:      binary.LittleEndian.Uint32(record.RawSample[0:4]),
-				DstIP:      binary.LittleEndian.Uint32(record.RawSample[4:8]),
-				SrcPort:    binary.LittleEndian.Uint16(record.RawSample[8:10]),
-				DstPort:    binary.LittleEndian.Uint16(record.RawSample[10:12]),
-				Protocol:   record.RawSample[12],
-				L7Protocol: record.RawSample[13],
-				State:      record.RawSample[14],
-				Timestamp:  binary.LittleEndian.Uint64(record.RawSample[16:24]),
-			}
+		if len(record.RawSample) < 28 {
+			continue
+		}
 
-			select {
-			case m.eventChan <- event:
-			default:
-				log.Printf("event channel full, dropping event")
-			}
+		event := types.RTTEvent{
+			SrcIP:     binary.LittleEndian.Uint32(record.RawSample[0:4]),
+			DstIP:     binary.LittleEndian.Uint32(record.RawSample[4:8]),
+			SrcPort:   binary.LittleEndian.Uint16(record.RawSample[8:10]),
+			DstPort:   binary.LittleEndian.Uint16(record.RawSample[10:12]),
+			Protocol:  record.RawSample[12],
+			RTTUs:     binary.LittleEndian.Uint32(record.RawSample[16:20]),
+			Timestamp: binary.LittleEndian.Uint64(record.RawSample[20:28]),
+		}
+
+		select {
+		case m.rttEventChan <- event:
+		default:
+			log.Printf("RTT event channel full, dropping sample")
 		}
 	}
 }
@@ -159,6 +206,11 @@ func (m *Monitor) readEvents() {
 // EventChannel returns the channel for new connection events
 func (m *Monitor) EventChannel() <-chan types.ConnEvent {
 	return m.eventChan
+}
+
+// RTTEventChannel returns the channel for individual RTT measurement events
+func (m *Monitor) RTTEventChannel() <-chan types.RTTEvent {
+	return m.rttEventChan
 }
 
 // GetAllFlows reads all current flows from the flow map
@@ -281,6 +333,12 @@ func (m *Monitor) Close() error {
 		}
 	}
 
+	if m.rttRingbuf != nil {
+		if err := m.rttRingbuf.Close(); err != nil {
+			log.Printf("closing RTT ring buffer: %v", err)
+		}
+	}
+
 	if m.link != nil {
 		if err := m.link.Close(); err != nil {
 			log.Printf("closing TC link: %v", err)
@@ -292,6 +350,7 @@ func (m *Monitor) Close() error {
 	}
 
 	close(m.eventChan)
+	close(m.rttEventChan)
 	log.Printf("eBPF monitor closed")
 	return nil
 }

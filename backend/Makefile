@@ -1,4 +1,12 @@
-.PHONY: all clean generate build run install-deps setup
+.PHONY: all clean generate build run install-deps setup build-collector build-auth run-collector run-auth
+
+# Build output directory and binary paths
+BUILD_DIR ?= bin
+COLLECTOR_BIN := $(BUILD_DIR)/collector
+AUTH_DIR ?= auth_service
+AUTH_APP_NAME ?= user-auth
+AUTH_BIN_DIR := $(BUILD_DIR)
+AUTH_BIN := $(AUTH_BIN_DIR)/$(AUTH_APP_NAME)
 
 # Default target
 all: install-deps clean generate build
@@ -9,8 +17,6 @@ setup:
 	./setup.sh
 
 # Install Go dependencies for backend and optionally auth_service
-
-AUTH_DIR ?= auth_service
 
 install-deps:
 	@echo "Downloading Go modules (backend)..."
@@ -31,16 +37,7 @@ generate: install-deps
 	@echo "Generating eBPF Go bindings..."
 	cd traffic-aggregation/ebpf && go generate
 
-# Build the collector binary
-BUILD_DIR ?= bin
-COLLECTOR_BIN := $(BUILD_DIR)/collector
-
-	# Auth service build vars
-AUTH_APP_NAME ?= user-auth
-AUTH_BIN_DIR := $(BUILD_DIR)
-AUTH_BIN := $(AUTH_BIN_DIR)/$(AUTH_APP_NAME)
-
-.PHONY: build build-collector build-auth
+# Build all binaries (collector and auth service)
 build: build-collector build-auth
 
 build-collector:
